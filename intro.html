@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirLens — Breathe Smarter</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #030912;
+      --surface: rgba(5, 13, 26, 0.92);
+      --border: rgba(56, 180, 255, 0.18);
+      --accent: #38b4ff;
+      --accent2: #00e5c8;
+      --text: #e8f0ff;
+      --text2: #7a9fc0;
+      --text3: #2a4a6a;
+      --fh: 'Bebas Neue', sans-serif;
+      --fb: 'DM Sans', sans-serif;
+      --fm: 'JetBrains Mono', monospace;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--fb);
+    }
+
+    html {
+      background: #030710;  /* fallback dark space color if video is still loading */
+    }
+
+    #globeBg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    /* LightRays background — replaces the space video */
+    #spaceBg {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      pointer-events: none;
+      overflow: hidden;
+      background: #030710;
+    }
+    #spaceBg canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    #earth3d {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: auto;
+    }
+
+    /* Stars layer not needed — video has its own */
+    #stars { display: none; }
+
+    /* Drag/scroll controls hint — appears on the right side when 3D map is visible */
+    .controls-hint {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 5;
+      background: rgba(3, 9, 18, 0.7);
+      border: 1px solid rgba(56, 180, 255, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: rgba(200, 220, 240, 0.85);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+    .controls-hint.show {
+      opacity: 1;
+    }
+    .ch-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 3px 0;
+    }
+    .ch-ico {
+      font-size: 14px;
+    }
+
+    /* AQI legend — shown under controls hint when India map is visible */
+    .aqi-legend {
+      position: fixed;
+      right: 24px;
+      bottom: 110px;          /* above the controls hint */
+      z-index: 5;
+      background: rgba(3, 9, 18, 0.82);
+      border: 1px solid rgba(56, 180, 255, 0.3);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 0.8px;
+      color: rgba(210, 225, 240, 0.92);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      min-width: 210px;
+    }
+    .aqi-legend.show { opacity: 1; }
+    .al-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--accent2);
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(56, 180, 255, 0.2);
+    }
+    .al-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      font-size: 10px;
+    }
+    .al-sw {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+    }
+    .al-txt {
+      flex: 1;
+      color: rgba(220, 235, 250, 0.95);
+    }
+    .al-range {
+      color: rgba(160, 180, 200, 0.75);
+      font-size: 9px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Dim overlay for text readability — only on text side (left), not over earth */
+    #globeOv {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        /* Gentle dark vignette on left half for text readability */
+        linear-gradient(to right, rgba(3, 7, 16, 0.55) 0%, rgba(3, 7, 16, 0.15) 40%, transparent 55%);
+    }
+
+    .scanline {
+      position: fixed;
+      top: -2px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      z-index: 4;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: sc 9s linear infinite;
+      opacity: .09;
+    }
+
+    @keyframes sc {
+      0% {
+        top: -2px
+      }
+
+      100% {
+        top: 100vh
+      }
+    }
+
+    .ctl {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 5;
+      width: 28px;
+      height: 28px;
+      border-top: 1px solid var(--accent);
+      border-left: 1px solid var(--accent);
+      opacity: .3;
+    }
+
+    .cbr {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 5;
+      width: 28px;
+      height: 28px;
+      border-bottom: 1px solid var(--accent2);
+      border-right: 1px solid var(--accent2);
+      opacity: .3;
+    }
+
+    #coords {
+      position: fixed;
+      bottom: 26px;
+      left: 26px;
+      z-index: 50;
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: var(--text3);
+      line-height: 1.8;
+      pointer-events: none;
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .6s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── HERO (2-COLUMN SPLIT LAYOUT) ── */
+    #s-hero {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px clamp(40px, 8vw, 120px);
+      gap: 40px;
+      text-align: left;
+    }
+    /* Allow clicks on empty areas of hero to reach the 3D canvas (earth drag).
+       Interactive children (h-left text/buttons) re-capture pointer events. */
+    .screen.active#s-hero { pointer-events: none; }
+    .screen.active#s-hero > * { pointer-events: auto; }
+    .screen.active#s-hero .h-left { pointer-events: none; }
+    .screen.active#s-hero .h-left > * { pointer-events: auto; }
+    /* Right half of hero is empty space over the earth — let drag pass through */
+    .screen.active#s-hero .h-right { pointer-events: none !important; }
+
+    /* Left half = text/logo/buttons */
+    .h-left {
+      flex: 1 1 50%;
+      max-width: 620px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* Right half is the 3D earth canvas (canvas itself is fixed, but we reserve space
+       so text stays on the left side of the screen) */
+    .h-right {
+      flex: 1 1 50%;
+      height: 100%;
+      pointer-events: none;  /* earth scene handles its own events */
+    }
+
+    /* Mobile: stack vertically, text on top, earth below */
+    @media (max-width: 900px) {
+      #s-hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 40px 24px;
+        gap: 20px;
+      }
+      .h-left { align-items: center; max-width: 100%; }
+      .h-right { display: none; }
+    }
+
+    .h-tag {
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--accent2);
+      margin-bottom: 18px;
+      opacity: 0;
+      animation: fu .8s ease .2s forwards;
+    }
+
+    .h-logo {
+      font-family: var(--fh);
+      font-size: clamp(70px, 9vw, 150px);
+      line-height: .85;
+      letter-spacing: 5px;
+      background: linear-gradient(140deg, #fff 0%, var(--accent) 48%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      animation: fu .8s ease .38s forwards;
+    }
+
+    .h-sub {
+      font-size: clamp(13px, 1.3vw, 16px);
+      color: var(--text2);
+      font-weight: 300;
+      line-height: 1.65;
+      margin: 16px 0 8px;
+      opacity: 0;
+      animation: fu .8s ease .56s forwards;
+      max-width: 520px;
+    }
+
+    .h-sub em {
+      color: var(--accent2);
+      font-style: normal;
+    }
+
+    .h-div {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(to right, var(--accent), var(--accent2), transparent);
+      margin: 18px 0;
+      opacity: 0;
+      animation: fu .8s ease .65s forwards;
+    }
+
+    @media (max-width: 900px) {
+      .h-div { margin: 18px auto; }
+    }
+
+    .h-btns {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fu .8s ease .82s forwards;
+    }
+
+    @media (max-width: 900px) {
+      .h-btns { justify-content: center; }
+    }
+
+    .btn-p {
+      padding: 15px 38px;
+      background: var(--accent);
+      color: #030912;
+      font-family: var(--fh);
+      font-size: 19px;
+      letter-spacing: 2px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all .3s;
+    }
+
+    .btn-p::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent);
+      transform: translateX(-100%);
+      transition: transform .5s;
+    }
+
+    .btn-p:hover::after {
+      transform: translateX(100%);
+    }
+
+    .btn-p:hover {
+      background: #5eceff;
+      box-shadow: 0 6px 26px rgba(56, 180, 255, .42);
+      transform: translateY(-2px);
+    }
+
+    .btn-o {
+      padding: 15px 30px;
+      background: rgba(255, 255, 255, .04);
+      color: var(--text);
+      font-family: var(--fh);
+      font-size: 19px;
+      letter-spacing: 2px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all .3s;
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-o:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      transform: translateY(-2px);
+    }
+
+    .h-sc {
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--text3);
+      margin-top: 28px;
+      opacity: 0;
+      animation: fu .8s ease 1s forwards;
+    }
+
+    /* ── GPS ── */
+    #s-gps {
+      flex-direction: column;
+      gap: 20px;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .gpulse {
+      font-size: 52px;
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 4px var(--accent));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 18px var(--accent));
+      }
+    }
+
+    .gtitle {
+      font-family: var(--fh);
+      font-size: clamp(42px, 6vw, 82px);
+      letter-spacing: 4px;
+    }
+
+    .gsub {
+      font-size: 13px;
+      color: var(--text2);
+      max-width: 420px;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .gstat {
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--accent2);
+    }
+
+    .lbw {
+      width: 260px;
+      height: 1px;
+      background: rgba(56, 180, 255, .15);
+      position: relative;
+    }
+
+    .lb {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .35s;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* ── LOCATION PICKER ── */
+    #s-pick {
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 24px clamp(40px, 8vw, 120px);
+    }
+    /* Override .screen.active's pointer-events so clicks pass through empty space
+       to the 3D canvas underneath. Interactive children re-enable capture. */
+    .screen.active#s-pick { pointer-events: none; }
+    .screen.active#s-pick > * { pointer-events: auto; }
+    .screen.active#s-pick .pick-wrap { pointer-events: none; }
+    .screen.active#s-pick .pick-wrap > * { pointer-events: auto; }
+
+    .pick-wrap {
+      width: 50%;
+      max-width: 560px;
+      margin-right: auto;  /* Push to left, leave right half for 3D map */
+    }
+
+    .pick-header {
+      text-align: left;
+      margin-bottom: 28px;
+    }
+
+    /* Mobile: stack — picker full width, no 3D on right */
+    @media (max-width: 900px) {
+      #s-pick {
+        align-items: center;
+        padding: 24px 16px;
+      }
+      .pick-wrap {
+        width: 100%;
+        max-width: 500px;
+        margin-right: 0;
+      }
+      .pick-header {
+        text-align: center;
+      }
+    }
+
+    .pick-title {
+      font-family: var(--fh);
+      font-size: clamp(36px, 5.5vw, 66px);
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .pick-sub {
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--accent2);
+      margin-top: 6px;
+    }
+
+    .step {
+      margin-bottom: 20px;
+      opacity: .32;
+      transition: opacity .4s, transform .4s;
+      transform: translateY(6px);
+      pointer-events: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+      /* Active step must sit ABOVE later steps so its open dropdown is not covered */
+      z-index: 200;
+    }
+
+    .step.done {
+      opacity: .6;
+      transform: translateY(0);
+      pointer-events: all;
+      z-index: 2;
+    }
+
+    .step-label {
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text3);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #030912;
+      font-size: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+
+    .step.done .step-num {
+      background: var(--accent2);
+    }
+
+    .sel-wrap {
+      position: relative;
+    }
+
+    .sel-display {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 13px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 15px;
+      transition: border-color .3s, box-shadow .3s;
+      backdrop-filter: blur(16px);
+      min-height: 50px;
+    }
+
+    .sel-display:hover,
+    .sel-display.open {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 180, 255, .12);
+    }
+
+    .sel-display .placeholder {
+      color: var(--text3);
+      font-size: 12px;
+      font-family: var(--fm);
+      letter-spacing: 1px;
+    }
+
+    .sel-display .chosen {
+      color: var(--text);
+      font-family: var(--fh);
+      font-size: 17px;
+      letter-spacing: 1px;
+    }
+
+    .sel-display .arrow {
+      color: var(--text3);
+      font-size: 10px;
+      transition: transform .3s;
+      flex-shrink: 0;
+    }
+
+    .sel-display.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .sel-dropdown {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      right: 0;
+      background: #060f1f;  /* fully opaque */
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      z-index: 100;
+      max-height: 340px;         /* taller for long lists like UP's 75 districts */
+      overflow-y: auto;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 14px 44px rgba(0, 0, 0, .75);
+      display: none;
+    }
+
+    .sel-dropdown.open {
+      display: block;
+    }
+
+    .sel-search {
+      width: 100%;
+      background: #060f1f;  /* solid to match dropdown */
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--fm);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 10px 14px;
+      outline: none;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .sel-search::placeholder {
+      color: var(--text3);
+    }
+
+    .sel-option {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text2);
+      transition: background .12s, color .12s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sel-option:hover {
+      background: rgba(56, 180, 255, .1);
+      color: var(--text);
+    }
+
+    .ci-name {
+      flex: 1;
+    }
+
+    .ci-type {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(56, 180, 255, 0.15);
+      color: var(--accent2);
+      opacity: 0.8;
+    }
+
+    /* AQI Preview */
+    .aqi-preview {
+      background: var(--surface);
+      border: 1px solid rgba(56, 180, 255, .18);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 6px;
+      display: none;
+      animation: fu .4s ease forwards;
+    }
+
+    .aqi-preview.show {
+      display: block;
+    }
+
+    .aqi-preview-title {
+      font-family: var(--fm);
+      font-size: 8px;
+      letter-spacing: 3px;
+      color: var(--text3);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .aqi-big {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .aqi-num {
+      font-family: var(--fh);
+      font-size: clamp(48px, 7vw, 72px);
+      line-height: 1;
+    }
+
+    .aqi-meta {
+      flex: 1;
+    }
+
+    .aqi-label {
+      font-family: var(--fm);
+      font-size: 11px;
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+
+    .aqi-station {
+      font-family: var(--fm);
+      font-size: 9px;
+      color: var(--text3);
+      margin-top: 3px;
+    }
+
+    .aqi-time {
+      font-family: var(--fm);
+      font-size: 8px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    .aqi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .aqi-cell {
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: 5px;
+      padding: 8px 10px;
+    }
+
+    .aqi-cell-lbl {
+      font-family: var(--fm);
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: var(--text3);
+      margin-bottom: 3px;
+    }
+
+    .aqi-cell-val {
+      font-family: var(--fm);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .aqi-cell-unit {
+      font-family: var(--fm);
+      font-size: 7px;
+      color: var(--text3);
+    }
+
+    .proceed-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #030912;
+      font-family: var(--fh);
+      font-size: 19px;
+      letter-spacing: 3px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all .3s;
+      display: none;
+      animation: fu .4s ease forwards;
+    }
+
+    .proceed-btn.show {
+      display: block;
+    }
+
+    .proceed-btn:hover {
+      background: #5eceff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(56, 180, 255, .4);
+    }
+
+    .spin {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(56, 180, 255, .2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── LOADING ── */
+    #s-load {
+      flex-direction: column;
+      gap: 18px;
+      text-align: center;
+    }
+
+    .lcity {
+      font-family: var(--fh);
+      font-size: clamp(52px, 9vw, 110px);
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .lsub {
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--accent2);
+    }
+
+    .lst {
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text3);
+    }
+
+    /* ── LOC CARD ── */
+    #lcard {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      z-index: 60;
+      background: rgba(5, 13, 26, .94);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 18px;
+      backdrop-filter: blur(18px);
+      transform: translateY(70px);
+      opacity: 0;
+      transition: all .5s;
+      min-width: 170px;
+    }
+
+    #lcard.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .lcl {
+      font-family: var(--fm);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    .lca {
+      font-family: var(--fh);
+      font-size: 44px;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .lcs {
+      font-family: var(--fm);
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-top: 3px;
+    }
+
+    .lcp {
+      font-family: var(--fm);
+      font-size: 9px;
+      color: var(--text3);
+      margin-top: 5px;
+      letter-spacing: 1px;
+    }
+
+    @keyframes fu {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--text3);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LightRays background (replaces space-bg.mp4) -->
+  <div id="spaceBg" aria-hidden="true"></div>
+  <div id="stars"></div>
+  <canvas id="earth3d"></canvas>
+  <div id="globeOv"></div>
+  <div class="scanline"></div>
+  <div class="ctl"></div>
+  <div class="cbr"></div>
+  <div id="coords"></div>
+
+  <!-- Three.js for the 3D Earth -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- India drill-down globe module -->
+  <script src="india-globe.js"></script>
+
+  <!-- ══ HERO ══ -->
+  <div class="screen active" id="s-hero">
+    <div class="h-left">
+      <div class="h-tag">🌬 Real-time Air Intelligence &nbsp;·&nbsp; India &nbsp;·&nbsp; AI-Powered</div>
+      <div class="h-logo">AIRLENS</div>
+      <div class="h-sub">Know what you breathe. Protect what you love.<br><em>Live AQI</em> for every state, every
+        district, every breath.</div>
+      <div class="h-div"></div>
+      <div class="h-btns">
+        <button class="btn-p" onclick="startPicker()">🗺 &nbsp;Select My Location</button>
+        <button class="btn-o" onclick="startGPS()">📍 &nbsp;Detect Automatically</button>
+      </div>
+      <div class="h-sc">↓ &nbsp; CLICK TO BEGIN</div>
+    </div>
+    <div class="h-right"></div>
+  </div>
+
+  <!-- ══ GPS ══ -->
+  <div class="screen" id="s-gps">
+    <div class="gpulse">📡</div>
+    <div class="gtitle">LOCATING YOU</div>
+    <div class="gsub">Using high-accuracy GPS to pinpoint your exact neighbourhood and pull live air quality data.</div>
+    <div class="gstat" id="gst">REQUESTING PERMISSION…</div>
+    <div class="lbw">
+      <div class="lb" id="gb"></div>
+    </div>
+  </div>
+
+  <!-- ══ LOCATION PICKER ══ -->
+  <div class="screen" id="s-pick">
+    <div class="pick-wrap">
+      <div class="pick-header">
+        <div class="pick-title">WHERE ARE YOU?</div>
+        <div class="pick-sub">NATION → STATE → DISTRICT → CITY / TOWN</div>
+      </div>
+
+      <!-- Step 1: Nation -->
+      <div class="step active" id="step1">
+        <div class="step-label">
+          <div class="step-num" id="sn1">1</div>SELECT YOUR NATION
+        </div>
+        <div class="sel-wrap">
+          <div class="sel-display" id="nationDisp" onclick="toggleDrop('nation')">
+            <span id="nationTxt" class="placeholder">Choose a nation…</span>
+            <span class="arrow">▾</span>
+          </div>
+          <div class="sel-dropdown" id="nationDrop">
+            <input class="sel-search" id="nationSearch" placeholder="Search nation…"
+              oninput="filterOpts('nation',this.value)">
+            <div id="nationOpts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: State -->
+      <div class="step" id="step2">
+        <div class="step-label">
+          <div class="step-num" id="sn2">2</div>SELECT YOUR STATE
+        </div>
+        <div class="sel-wrap">
+          <div class="sel-display" id="stateDisp" onclick="toggleDrop('state')">
+            <span id="stateTxt" class="placeholder">Choose a state…</span>
+            <span class="arrow">▾</span>
+          </div>
+          <div class="sel-dropdown" id="stateDrop">
+            <input class="sel-search" id="stateSearch" placeholder="Search state…"
+              oninput="filterOpts('state',this.value)">
+            <div id="stateOpts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: District -->
+      <div class="step" id="step3">
+        <div class="step-label">
+          <div class="step-num" id="sn3">3</div>SELECT YOUR DISTRICT
+        </div>
+        <div class="sel-wrap">
+          <div class="sel-display" id="districtDisp" onclick="toggleDrop('district')">
+            <span id="districtTxt" class="placeholder">Choose a district…</span>
+            <span class="arrow">▾</span>
+          </div>
+          <div class="sel-dropdown" id="districtDrop">
+            <input class="sel-search" id="districtSearch" placeholder="Search district…"
+              oninput="filterOpts('district',this.value)">
+            <div id="districtOpts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: City -->
+      <div class="step" id="step4">
+        <div class="step-label">
+          <div class="step-num" id="sn4">4</div>SELECT YOUR CITY / TOWN
+        </div>
+        <div class="sel-wrap">
+          <div class="sel-display" id="cityDisp" onclick="toggleDrop('city')">
+            <span id="cityTxt" class="placeholder">Choose a city or town…</span>
+            <span class="arrow">▾</span>
+          </div>
+          <div class="sel-dropdown" id="cityDrop">
+            <input class="sel-search" id="citySearch" placeholder="Search city/town…"
+              oninput="filterOpts('city',this.value)">
+            <div id="cityOpts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live AQI Preview -->
+      <div class="aqi-preview" id="aqiPreview">
+        <div class="aqi-preview-title">⚡ LIVE AIR QUALITY — <span id="prevLoc"></span></div>
+        <div class="aqi-big">
+          <div class="aqi-num" id="prevAQI">—</div>
+          <div class="aqi-meta">
+            <div class="aqi-label" id="prevLabel">—</div>
+            <div class="aqi-station" id="prevStation">—</div>
+            <div class="aqi-time" id="prevTime"></div>
+          </div>
+        </div>
+        <div class="aqi-grid">
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">PM2.5</div>
+            <div class="aqi-cell-val" id="pvPM25">—</div>
+            <div class="aqi-cell-unit">µg/m³</div>
+          </div>
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">PM10</div>
+            <div class="aqi-cell-val" id="pvPM10">—</div>
+            <div class="aqi-cell-unit">µg/m³</div>
+          </div>
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">NO₂</div>
+            <div class="aqi-cell-val" id="pvNO2">—</div>
+            <div class="aqi-cell-unit">µg/m³</div>
+          </div>
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">O₃</div>
+            <div class="aqi-cell-val" id="pvO3">—</div>
+            <div class="aqi-cell-unit">µg/m³</div>
+          </div>
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">SO₂</div>
+            <div class="aqi-cell-val" id="pvSO2">—</div>
+            <div class="aqi-cell-unit">µg/m³</div>
+          </div>
+          <div class="aqi-cell">
+            <div class="aqi-cell-lbl">CO</div>
+            <div class="aqi-cell-val" id="pvCO">—</div>
+            <div class="aqi-cell-unit">ppm</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="proceed-btn" id="proceedBtn" onclick="launchFromPicker()">🚀 &nbsp;VIEW MY AIR QUALITY</button>
+    </div>
+    <!-- Controls hint — appears when India map is visible -->
+    <div class="controls-hint" id="controlsHint">
+      <div class="ch-row"><span class="ch-ico">🖱️</span> Drag to rotate</div>
+      <div class="ch-row"><span class="ch-ico">⚙</span> Scroll to zoom</div>
+    </div>
+    <!-- AQI legend — same palette used across all 3D maps -->
+    <div class="aqi-legend" id="aqiLegend">
+      <div class="al-title">AQI LEVEL</div>
+      <div class="al-row"><span class="al-sw" style="background:#00e676"></span><span class="al-txt">Good</span><span class="al-range">0-50</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#8bc34a"></span><span class="al-txt">Moderate</span><span class="al-range">51-100</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#ffeb3b"></span><span class="al-txt">Unhealthy (sensitive)</span><span class="al-range">101-135</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#ffc107"></span><span class="al-txt">Unhealthy</span><span class="al-range">136-170</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#ff9800"></span><span class="al-txt">Very unhealthy</span><span class="al-range">171-210</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#ff5722"></span><span class="al-txt">Hazardous</span><span class="al-range">211-250</span></div>
+      <div class="al-row"><span class="al-sw" style="background:#f44336"></span><span class="al-txt">Severe</span><span class="al-range">250+</span></div>
+    </div>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div class="screen" id="s-load">
+    <div class="lcity" id="lcity">—</div>
+    <div class="lsub">LOADING AIR QUALITY DATA</div>
+    <div class="lbw">
+      <div class="lb" id="lbar"></div>
+    </div>
+    <div class="lst" id="lstat">CONNECTING…</div>
+  </div>
+
+  <!-- LOC CARD -->
+  <div id="lcard">
+    <div class="lcl">📍 YOUR LOCATION</div>
+    <div class="lca" id="lca">—</div>
+    <div class="lcs" id="lcs">—</div>
+    <div class="lcp" id="lcp">—</div>
+  </div>
+
+  <!-- 3D Earth init now lives in india-globe.js -->
+  <script>
+    /* Initialize the drill-down globe. This single instance handles
+       world view, India view, state view, and district view. */
+    let indiaGlobe = null;
+    window.addEventListener("DOMContentLoaded", () => {
+      const canvas = document.getElementById("earth3d");
+      if (!canvas || !window.THREE || !window.IndiaGlobe) return;
+      indiaGlobe = new IndiaGlobe(canvas);
+      window.indiaGlobe = indiaGlobe;
+    });
+  </script>
+
+  <script>
+    const WAQI = 'd393684229b2dd78ba0f63ad1b88395431341c8d';
+
+    const aqiC = v => {
+      if (!v || isNaN(v)) return '#38b4ff';
+      if (v <= 50) return '#00e676';   // Bright Green
+      if (v <= 100) return '#8bc34a';  // Lime
+      if (v <= 135) return '#ffeb3b';  // Yellow
+      if (v <= 170) return '#ffc107';  // Amber
+      if (v <= 210) return '#ff9800';  // Orange
+      if (v <= 250) return '#ff5722';  // Deep Orange
+      return '#f44336';                 // Red
+    };
+    const aqiL = v => {
+      if (!v || isNaN(v)) return 'NO DATA';
+      if (v <= 50) return 'GOOD';
+      if (v <= 100) return 'MODERATE';
+      if (v <= 135) return 'UNHEALTHY FOR SENSITIVE';
+      if (v <= 170) return 'UNHEALTHY';
+      if (v <= 210) return 'VERY UNHEALTHY';
+      if (v <= 250) return 'HAZARDOUS';
+      return 'SEVERE';
+    };
+
+    let CUR = 's-hero';
+    const goTo = id => { document.getElementById(CUR).classList.remove('active'); document.getElementById(id).classList.add('active'); CUR = id; };
+
+    /* ══════════ INDIA LOCATION DATA ══════════ */
+    const INDIA = [
+      {
+        state: 'Andhra Pradesh', districts: [
+          { d: 'Visakhapatnam', cities: ['Visakhapatnam', 'Bheemunipatnam', 'Anakapalli', 'Gajuwaka'] },
+          { d: 'East Godavari', cities: ['Kakinada', 'Rajahmundry', 'Amalapuram', 'Ramachandrapuram'] },
+          { d: 'West Godavari', cities: ['Eluru', 'Bhimavaram', 'Tanuku', 'Palakol'] },
+          { d: 'Guntur', cities: ['Guntur', 'Tenali', 'Mangalagiri', 'Narasaraopet'] },
+          { d: 'Krishna', cities: ['Vijayawada', 'Machilipatnam', 'Gudivada', 'Nuzvid'] },
+          { d: 'Kurnool', cities: ['Kurnool', 'Nandyal', 'Adoni', 'Dhone'] },
+          { d: 'Chittoor', cities: ['Tirupati', 'Chittoor', 'Madanapalle', 'Puttur'] },
+          { d: 'Nellore', cities: ['Nellore', 'Kavali', 'Gudur', 'Sullurpeta'] },
+          { d: 'Prakasam', cities: ['Ongole', 'Markapur', 'Giddalur', 'Kanigiri'] },
+        ]
+      },
+      {
+        state: 'Assam', districts: [
+          { d: 'Kamrup Metropolitan', cities: ['Guwahati', 'Dispur', 'Jalukbari', 'Narengi'] },
+          { d: 'Dibrugarh', cities: ['Dibrugarh', 'Naharkatia', 'Duliajan'] },
+          { d: 'Jorhat', cities: ['Jorhat', 'Mariani', 'Sibsagar'] },
+          { d: 'Cachar', cities: ['Silchar', 'Sonai', 'Lakhipur'] },
+        ]
+      },
+      {
+        state: 'Bihar', districts: [
+          { d: 'Patna', cities: ['Patna', 'Danapur', 'Hajipur', 'Phulwari Sharif'] },
+          { d: 'Gaya', cities: ['Gaya', 'Bodh Gaya', 'Sherghati'] },
+          { d: 'Muzaffarpur', cities: ['Muzaffarpur', 'Sitamarhi', 'Motihari'] },
+          { d: 'Bhagalpur', cities: ['Bhagalpur', 'Sultanganj', 'Banka'] },
+          { d: 'Purnia', cities: ['Purnia', 'Katihar', 'Araria'] },
+        ]
+      },
+      {
+        state: 'Chhattisgarh', districts: [
+          { d: 'Raipur', cities: ['Raipur', 'Birgaon', 'Arang'] },
+          { d: 'Durg', cities: ['Bhilai', 'Durg', 'Rajnandgaon', 'Risali'] },
+          { d: 'Bilaspur', cities: ['Bilaspur', 'Korba', 'Akaltara'] },
+          { d: 'Raigarh', cities: ['Raigarh', 'Sarangarh'] },
+        ]
+      },
+      {
+        state: 'Delhi', districts: [
+          { d: 'Central Delhi', cities: ['Connaught Place', 'Chandni Chowk', 'Karol Bagh', 'Paharganj'] },
+          { d: 'North Delhi', cities: ['Rohini', 'Pitampura', 'Model Town', 'Shalimar Bagh'] },
+          { d: 'South Delhi', cities: ['Saket', 'Hauz Khas', 'Nehru Place', 'Lajpat Nagar'] },
+          { d: 'East Delhi', cities: ['Laxmi Nagar', 'Preet Vihar', 'Shahdara', 'Patparganj'] },
+          { d: 'West Delhi', cities: ['Janakpuri', 'Dwarka', 'Tilak Nagar', 'Vikaspuri'] },
+          { d: 'New Delhi', cities: ['New Delhi', 'RK Puram', 'Vasant Kunj', 'Safdarjung'] },
+          { d: 'North East Delhi', cities: ['Seelampur', 'Yamuna Vihar', 'Gokulpuri', 'Jaffrabad'] },
+          { d: 'South West Delhi', cities: ['Palam', 'Najafgarh', 'Kapashera', 'Bijwasan'] },
+        ]
+      },
+      {
+        state: 'Goa', districts: [
+          { d: 'North Goa', cities: ['Panaji', 'Mapusa', 'Calangute', 'Ponda', 'Bicholim'] },
+          { d: 'South Goa', cities: ['Margao', 'Vasco da Gama', 'Colva', 'Curchorem'] },
+        ]
+      },
+      {
+        state: 'Gujarat', districts: [
+          { d: 'Ahmedabad', cities: ['Ahmedabad', 'Gandhinagar', 'Sanand', 'Naroda'] },
+          { d: 'Surat', cities: ['Surat', 'Bardoli', 'Vapi', 'Navsari'] },
+          { d: 'Vadodara', cities: ['Vadodara', 'Anand', 'Halol', 'Karjan'] },
+          { d: 'Rajkot', cities: ['Rajkot', 'Morbi', 'Gondal', 'Jetpur'] },
+          { d: 'Kutch', cities: ['Bhuj', 'Gandhidham', 'Anjar', 'Mundra'] },
+          { d: 'Jamnagar', cities: ['Jamnagar', 'Dwarka', 'Khambhalia'] },
+        ]
+      },
+      {
+        state: 'Haryana', districts: [
+          { d: 'Gurugram', cities: ['Gurugram', 'Sohna', 'Manesar', 'Pataudi'] },
+          { d: 'Faridabad', cities: ['Faridabad', 'Ballabhgarh', 'Palwal', 'Hodal'] },
+          { d: 'Ambala', cities: ['Ambala', 'Yamunanagar', 'Jagadhri', 'Naraingarh'] },
+          { d: 'Hisar', cities: ['Hisar', 'Rohtak', 'Bhiwani', 'Hansi'] },
+          { d: 'Sonipat', cities: ['Sonipat', 'Panipat', 'Karnal', 'Kaithal'] },
+          { d: 'Panchkula', cities: ['Panchkula', 'Kalka', 'Raipur Rani'] },
+        ]
+      },
+      {
+        state: 'Himachal Pradesh', districts: [
+          { d: 'Shimla', cities: ['Shimla', 'Solan', 'Parwanoo', 'Kasauli'] },
+          { d: 'Kangra', cities: ['Dharamsala', 'Palampur', 'Dalhousie', 'Nurpur'] },
+          { d: 'Mandi', cities: ['Mandi', 'Sundarnagar', 'Kullu', 'Manali'] },
+        ]
+      },
+      {
+        state: 'Jammu & Kashmir', districts: [
+          { d: 'Jammu', cities: ['Jammu', 'Kathua', 'Udhampur', 'Samba'] },
+          { d: 'Srinagar', cities: ['Srinagar', 'Ganderbal', 'Baramulla', 'Sopore'] },
+          { d: 'Anantnag', cities: ['Anantnag', 'Kulgam', 'Shopian'] },
+        ]
+      },
+      {
+        state: 'Jharkhand', districts: [
+          { d: 'Ranchi', cities: ['Ranchi', 'Ramgarh', 'Namkum'] },
+          { d: 'Dhanbad', cities: ['Dhanbad', 'Jharia', 'Bokaro', 'Sindri'] },
+          { d: 'East Singhbhum', cities: ['Jamshedpur', 'Ghatsila', 'Baharagora'] },
+          { d: 'Hazaribagh', cities: ['Hazaribagh', 'Giridih', 'Chatra'] },
+        ]
+      },
+      {
+        state: 'Karnataka', districts: [
+          { d: 'Bengaluru Urban', cities: ['Bengaluru', 'Whitefield', 'Electronic City', 'Yelahanka', 'Koramangala', 'Jayanagar', 'Indiranagar'] },
+          { d: 'Mysuru', cities: ['Mysuru', 'Mandya', 'Nanjangud', 'Srirangapatna'] },
+          { d: 'Dharwad', cities: ['Hubli', 'Dharwad', 'Gadag', 'Haveri'] },
+          { d: 'Dakshina Kannada', cities: ['Mangaluru', 'Bantwal', 'Puttur', 'Sullia'] },
+          { d: 'Belagavi', cities: ['Belagavi', 'Gokak', 'Chikodi', 'Raibag'] },
+          { d: 'Kalaburagi', cities: ['Kalaburagi', 'Bidar', 'Yadgir'] },
+        ]
+      },
+      {
+        state: 'Kerala', districts: [
+          { d: 'Ernakulam', cities: ['Kochi', 'Aluva', 'Thrippunithura', 'Perumbavoor', 'Kalamassery'] },
+          { d: 'Thiruvananthapuram', cities: ['Thiruvananthapuram', 'Attingal', 'Neyyattinkara', 'Nedumangad'] },
+          { d: 'Kozhikode', cities: ['Kozhikode', 'Koyilandy', 'Ramanattukara', 'Vatakara'] },
+          { d: 'Thrissur', cities: ['Thrissur', 'Irinjalakuda', 'Chalakudy', 'Kodungallur'] },
+          { d: 'Palakkad', cities: ['Palakkad', 'Ottapalam', 'Shoranur', 'Pattambi'] },
+          { d: 'Kollam', cities: ['Kollam', 'Kottarakara', 'Punalur', 'Karunagappally'] },
+          { d: 'Kottayam', cities: ['Kottayam', 'Pala', 'Changanassery', 'Vaikom'] },
+          { d: 'Malappuram', cities: ['Malappuram', 'Tirur', 'Perinthalmanna', 'Manjeri'] },
+        ]
+      },
+      {
+        state: 'Madhya Pradesh', districts: [
+          { d: 'Bhopal', cities: ['Bhopal', 'Mandideep', 'Berasia', 'Obaidullaganj'] },
+          { d: 'Indore', cities: ['Indore', 'Dewas', 'Pithampur', 'Mhow'] },
+          { d: 'Gwalior', cities: ['Gwalior', 'Morena', 'Shivpuri', 'Dabra'] },
+          { d: 'Jabalpur', cities: ['Jabalpur', 'Katni', 'Mandla', 'Narsinghpur'] },
+          { d: 'Ujjain', cities: ['Ujjain', 'Ratlam', 'Nagda', 'Shajapur'] },
+        ]
+      },
+      {
+        state: 'Maharashtra', districts: [
+          { d: 'Mumbai City', cities: ['Mumbai', 'Colaba', 'Fort', 'Churchgate', 'Andheri', 'Bandra', 'Dadar'] },
+          { d: 'Mumbai Suburban', cities: ['Borivali', 'Malad', 'Kandivali', 'Goregaon', 'Mulund', 'Thane'] },
+          { d: 'Thane', cities: ['Thane', 'Navi Mumbai', 'Kalyan', 'Bhiwandi', 'Ulhasnagar', 'Dombivali'] },
+          { d: 'Pune', cities: ['Pune', 'Pimpri-Chinchwad', 'Hinjawadi', 'Hadapsar', 'Kharadi', 'Wakad'] },
+          { d: 'Nagpur', cities: ['Nagpur', 'Wardha', 'Yavatmal', 'Amravati'] },
+          { d: 'Nashik', cities: ['Nashik', 'Igatpuri', 'Sinnar', 'Ozar'] },
+          { d: 'Aurangabad', cities: ['Aurangabad', 'Jalgaon', 'Dhule', 'Nandurbar'] },
+        ]
+      },
+      {
+        state: 'Manipur', districts: [
+          { d: 'Imphal West', cities: ['Imphal', 'Lamphelpat', 'Singjamei'] },
+          { d: 'Imphal East', cities: ['Porompat', 'Heingang', 'Keisamthong'] },
+        ]
+      },
+      {
+        state: 'Meghalaya', districts: [
+          { d: 'East Khasi Hills', cities: ['Shillong', 'Mawlai', 'Laitkor', 'Nongthymmai'] },
+          { d: 'West Garo Hills', cities: ['Tura', 'Phulbari', 'Tikrikilla'] },
+        ]
+      },
+      {
+        state: 'Mizoram', districts: [
+          { d: 'Aizawl', cities: ['Aizawl', 'Durtlang', 'Zemabawk'] },
+        ]
+      },
+      {
+        state: 'Nagaland', districts: [
+          { d: 'Kohima', cities: ['Kohima', 'Dimapur', 'Medziphema'] },
+        ]
+      },
+      {
+        state: 'Odisha', districts: [
+          { d: 'Khordha', cities: ['Bhubaneswar', 'Puri', 'Khordha', 'Jatani'] },
+          { d: 'Cuttack', cities: ['Cuttack', 'Choudwar', 'Jagatsinghpur', 'Kendrapara'] },
+          { d: 'Sundargarh', cities: ['Rourkela', 'Sundargarh', 'Rajgangpur'] },
+          { d: 'Sambalpur', cities: ['Sambalpur', 'Bargarh', 'Jharsuguda'] },
+        ]
+      },
+      {
+        state: 'Punjab', districts: [
+          { d: 'Amritsar', cities: ['Amritsar', 'Tarn Taran', 'Attari', 'Jandiala Guru'] },
+          { d: 'Ludhiana', cities: ['Ludhiana', 'Jagraon', 'Khanna', 'Raikot'] },
+          { d: 'Jalandhar', cities: ['Jalandhar', 'Phagwara', 'Nakodar', 'Kapurthala'] },
+          { d: 'Patiala', cities: ['Patiala', 'Rajpura', 'Sangrur', 'Nabha'] },
+          { d: 'SAS Nagar', cities: ['Mohali', 'Kharar', 'Dera Bassi', 'Zirakpur'] },
+          { d: 'Bathinda', cities: ['Bathinda', 'Mansa', 'Barnala', 'Muktsar'] },
+        ]
+      },
+      {
+        state: 'Rajasthan', districts: [
+          { d: 'Jaipur', cities: ['Jaipur', 'Sanganer', 'Chomu', 'Amber'] },
+          { d: 'Jodhpur', cities: ['Jodhpur', 'Phalodi', 'Barmer', 'Balotra'] },
+          { d: 'Udaipur', cities: ['Udaipur', 'Rajsamand', 'Nathdwara', 'Bhilwara'] },
+          { d: 'Kota', cities: ['Kota', 'Bundi', 'Jhalawar', 'Baran'] },
+          { d: 'Ajmer', cities: ['Ajmer', 'Beawar', 'Kishangarh', 'Nasirabad'] },
+          { d: 'Alwar', cities: ['Alwar', 'Bhiwadi', 'Behror', 'Tijara'] },
+          { d: 'Bikaner', cities: ['Bikaner', 'Nokha', 'Lunkaransar'] },
+        ]
+      },
+      {
+        state: 'Sikkim', districts: [
+          { d: 'East Sikkim', cities: ['Gangtok', 'Rangpo', 'Singtam'] },
+          { d: 'West Sikkim', cities: ['Gyalshing', 'Jorethang', 'Nayabazar'] },
+        ]
+      },
+      {
+        state: 'Tamil Nadu', districts: [
+          { d: 'Chennai', cities: ['Chennai', 'Semmencheri', 'Sholinganallur', 'Perungudi', 'Velachery', 'Tambaram', 'Ambattur', 'Avadi', 'Ennore', 'Manali', 'Perambur', 'Tondiarpet', 'Anna Nagar', 'T Nagar', 'Adyar', 'Mylapore', 'Kodambakkam', 'Villivakkam', 'Kolathur', 'Madhavaram', 'Red Hills', 'Poonamallee', 'Chromepet', 'Pallavaram'] },
+          { d: 'Coimbatore', cities: ['Coimbatore', 'Tirupur', 'Mettupalayam', 'Pollachi', 'Sulur'] },
+          { d: 'Madurai', cities: ['Madurai', 'Dindigul', 'Theni', 'Palani', 'Usilampatti'] },
+          { d: 'Salem', cities: ['Salem', 'Namakkal', 'Erode', 'Rasipuram', 'Omalur'] },
+          { d: 'Tiruchirappalli', cities: ['Tiruchirappalli', 'Karur', 'Thanjavur', 'Kumbakonam', 'Lalgudi'] },
+          { d: 'Tirunelveli', cities: ['Tirunelveli', 'Thoothukudi', 'Nagercoil', 'Tenkasi', 'Sankarankovil'] },
+          { d: 'Vellore', cities: ['Vellore', 'Ranipet', 'Ambur', 'Tirupattur', 'Vaniyambadi'] },
+          { d: 'Chengalpattu', cities: ['Chengalpattu', 'Mahabalipuram', 'Guduvanchery', 'Vandalur', 'Kelambakkam'] },
+          { d: 'Tiruvallur', cities: ['Tiruvallur', 'Ponneri', 'Gummidipoondi', 'Tiruttani'] },
+          { d: 'Kancheepuram', cities: ['Kancheepuram', 'Sriperumbudur', 'Chengalpattu', 'Walajabad'] },
+          { d: 'Krishnagiri', cities: ['Krishnagiri', 'Hosur', 'Denkanikottai', 'Bargur'] },
+          { d: 'Dharmapuri', cities: ['Dharmapuri', 'Palacode', 'Harur', 'Pennagaram'] },
+        ]
+      },
+      {
+        state: 'Telangana', districts: [
+          { d: 'Hyderabad', cities: ['Hyderabad', 'Secunderabad', 'Kukatpally', 'Uppal', 'Ameerpet', 'Jubilee Hills'] },
+          { d: 'Rangareddy', cities: ['Shamshabad', 'Rajendranagar', 'Ibrahimpatnam', 'LB Nagar'] },
+          { d: 'Medchal', cities: ['Malkajgiri', 'Kompally', 'Medchal', 'Quthbullapur'] },
+          { d: 'Warangal Urban', cities: ['Warangal', 'Hanamkonda', 'Kazipet', 'Hasanparthi'] },
+          { d: 'Karimnagar', cities: ['Karimnagar', 'Jagtial', 'Peddapalli', 'Mancherial'] },
+        ]
+      },
+      {
+        state: 'Tripura', districts: [
+          { d: 'West Tripura', cities: ['Agartala', 'Mohanpur', 'Bishalgarh', 'Jirania'] },
+          { d: 'Gomati', cities: ['Udaipur', 'Amarpur', 'Sabroom'] },
+        ]
+      },
+      {
+        state: 'Uttar Pradesh', districts: [
+          { d: 'Lucknow', cities: ['Lucknow', 'Barabanki', 'Raebareli', 'Unnao'] },
+          { d: 'Kanpur Nagar', cities: ['Kanpur', 'Kanpur Dehat', 'Fatehpur'] },
+          { d: 'Agra', cities: ['Agra', 'Firozabad', 'Mathura', 'Hathras'] },
+          { d: 'Varanasi', cities: ['Varanasi', 'Jaunpur', 'Mirzapur', 'Bhadohi'] },
+          { d: 'Gautam Buddha Nagar', cities: ['Noida', 'Greater Noida', 'Dadri', 'Jewar'] },
+          { d: 'Ghaziabad', cities: ['Ghaziabad', 'Loni', 'Modinagar', 'Muradnagar'] },
+          { d: 'Prayagraj', cities: ['Prayagraj', 'Phulpur', 'Naini', 'Jhunsi'] },
+          { d: 'Meerut', cities: ['Meerut', 'Hapur', 'Modinagar', 'Garhmukteshwar'] },
+          { d: 'Bareilly', cities: ['Bareilly', 'Pilibhit', 'Shahjahanpur', 'Rampur'] },
+          { d: 'Gorakhpur', cities: ['Gorakhpur', 'Deoria', 'Basti', 'Kushinagar'] },
+        ]
+      },
+      {
+        state: 'Uttarakhand', districts: [
+          { d: 'Dehradun', cities: ['Dehradun', 'Mussoorie', 'Rishikesh', 'Doiwala', 'Vikasnagar'] },
+          { d: 'Haridwar', cities: ['Haridwar', 'Roorkee', 'Laksar', 'Manglaur'] },
+          { d: 'Nainital', cities: ['Haldwani', 'Nainital', 'Ramnagar', 'Bhimtal'] },
+          { d: 'Udham Singh Nagar', cities: ['Rudrapur', 'Kashipur', 'Khatima', 'Jaspur'] },
+        ]
+      },
+      {
+        state: 'West Bengal', districts: [
+          { d: 'Kolkata', cities: ['Kolkata', 'Salt Lake', 'New Town', 'Baranagar', 'Dum Dum', 'Garden Reach'] },
+          { d: 'Howrah', cities: ['Howrah', 'Uluberia', 'Shibpur', 'Bally'] },
+          { d: 'North 24 Parganas', cities: ['Barasat', 'Bongaon', 'Habra', 'Barrackpore', 'Titagarh'] },
+          { d: 'Burdwan', cities: ['Asansol', 'Durgapur', 'Burdwan', 'Raniganj', 'Kulti'] },
+          { d: 'Darjeeling', cities: ['Siliguri', 'Darjeeling', 'Kurseong', 'Jalpaiguri'] },
+          { d: 'Hooghly', cities: ['Chandannagar', 'Serampore', 'Chinsurah', 'Rishra'] },
+        ]
+      },
+    ];
+
+    /* ══ PICKER STATE ══ */
+    let selNation = null, selState = null, selDistrict = null, selCity = null, liveAQI = null;
+
+    // Nations list — symbolic (only India has detailed GeoJSON support)
+    const NATIONS = [
+      { name: 'India', code: 'IN', supported: true }
+    ];
+
+    function startPicker() {
+      goTo('s-pick');
+      if (window.indiaGlobe) {
+        window.indiaGlobe.flyToNation('IN', getMockStateAQIs());
+      }
+      // Reset all selections
+      selNation = null; selState = null; selDistrict = null; selCity = null;
+      // Activate step 1 (nation), deactivate others
+      ['step1','step2','step3','step4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active', 'done');
+      });
+      document.getElementById('step1').classList.add('active');
+      setDisplay('nation', 'Choose a nation…', false);
+      setDisplay('state', 'Choose a state…', false);
+      setDisplay('district', 'Choose a district…', false);
+      setDisplay('city', 'Choose a city or town…', false);
+      document.getElementById('aqiPreview').classList.remove('show');
+      document.getElementById('proceedBtn').classList.remove('show');
+      renderOpts('nation', '');
+      // NOTE: globe stays on hero (world view with spinning earth) until user picks India
+      // The cinematic fly-in happens in pickNation(), not here.
+    }
+
+    // Mock AQI per state (keyed by normalized name) — real WAQI integration in Phase 5
+    function getMockStateAQIs() {
+      return {
+        delhi: 185, haryana: 165, punjab: 158, uttarpradesh: 172,
+        rajasthan: 145, bihar: 175, westbengal: 152, jharkhand: 148,
+        madhyapradesh: 135, gujarat: 128, maharashtra: 115, goa: 68,
+        karnataka: 95, kerala: 72, tamilnadu: 98, andhrapradesh: 105,
+        telangana: 112, odisha: 120, chhattisgarh: 138, assam: 95,
+        himachalpradesh: 65, uttarakhand: 78, sikkim: 55, arunachalpradesh: 48,
+        manipur: 62, meghalaya: 58, mizoram: 52, nagaland: 60, tripura: 75,
+        jammuandkashmir: 82, ladakh: 40, andamanandnicobarislands: 45,
+        lakshadweep: 50, puducherry: 88, chandigarh: 142,
+        dadranagarhaveliandamananddiu: 95
+      };
+    }
+
+    // Mock AQI per district within each state (keyed by normalized district name)
+    function getMockDistrictAQIs(stateName) {
+      // Produce believable district-level AQI values by jittering the state's base AQI
+      const stateAQIs = getMockStateAQIs();
+      const key = stateName.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+      const base = stateAQIs[key] || 100;
+      const out = {};
+      const state = INDIA.find(s => s.state === stateName);
+      if (!state) return out;
+      state.districts.forEach((d, i) => {
+        // Seeded pseudo-random jitter so colors are stable
+        const seed = (d.d.charCodeAt(0) * 17 + i * 31) % 80 - 40;
+        const aqi = Math.max(20, Math.min(250, base + seed));
+        out[d.d.toLowerCase().replace(/[^a-z0-9]/g, '')] = aqi;
+      });
+      return out;
+    }
+
+    // Mock AQI per city inside a district
+    function getMockCityAQIs(stateName, districtName) {
+      const districtAQIs = getMockDistrictAQIs(stateName);
+      const dKey = normalizeDistrict(districtName);
+      const base = districtAQIs[dKey] || 100;
+
+      // Look up the district's city list:
+      //   1st: from selState._fullDistricts (the loaded dynamic list)
+      //   2nd: from the hardcoded INDIA array
+      //   fallback: just the district itself as a single "city"
+      let cities = null;
+      if (selState && selState._fullDistricts) {
+        const found = selState._fullDistricts.find(d => d.d === districtName);
+        if (found) cities = found.cities;
+      }
+      if (!cities) {
+        const state = INDIA.find(s => s.state === stateName);
+        const district = state ? state.districts.find(d => d.d === districtName) : null;
+        if (district) cities = district.cities;
+      }
+      if (!cities || !cities.length) cities = [districtName];
+
+      return cities.map((c, i) => {
+        const seed = (c.charCodeAt(0) * 13 + i * 27) % 60 - 30;
+        return {
+          name: c,
+          aqi: Math.max(20, Math.min(250, base + seed)),
+          lat: null, lng: null
+        };
+      });
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       COMPLETE DISTRICT DATA LOADER
+       Fetches the full list of districts for a state from the
+       jsDelivr CDN (udit-001/india-maps-data). Merges with the
+       pre-defined city lists where available, so districts I don't
+       have city data for still appear in the dropdown (just empty
+       cities — will be filled in Phase 2).
+       ════════════════════════════════════════════════════════════ */
+    const districtCache = new Map();  // stateName -> Array<{d, cities}>
+
+    async function loadAllDistrictsForState(stateName) {
+      if (districtCache.has(stateName)) return districtCache.get(stateName);
+      if (!window.IndiaGlobeUtils) return null;
+
+      // Kick off fetch (cache the promise, not the result, to dedupe concurrent calls)
+      const slug = window.IndiaGlobeUtils.stateSlug(stateName);
+      const url = window.IndiaGlobeUtils.STATE_URL(slug);
+      const p = fetch(url).then(r => {
+        if (!r.ok) throw new Error('Failed to load ' + url);
+        return r.json();
+      }).then(geo => {
+        // Pull existing manual cities from the hardcoded INDIA array so we don't lose them
+        const manual = INDIA.find(s => s.state === stateName);
+        const manualMap = {};
+        if (manual) manual.districts.forEach(d => { manualMap[normalizeDistrict(d.d)] = d.cities; });
+
+        const list = [];
+        const seen = new Set();
+        geo.features.forEach(feat => {
+          const dname = feat.properties.district || feat.properties.NAME_2 || feat.properties.name;
+          if (!dname) return;
+          const key = normalizeDistrict(dname);
+          if (seen.has(key)) return;
+          seen.add(key);
+          const cities = manualMap[key] || [dname];  // default: the district headquarters itself as the only "city"
+          list.push({ d: dname, cities });
+        });
+        // Sort alphabetically for easy browsing
+        list.sort((a, b) => a.d.localeCompare(b.d));
+        return list;
+      });
+      districtCache.set(stateName, p);
+      try { return await p; }
+      catch (e) { districtCache.delete(stateName); console.warn('[districts] load failed', e); return null; }
+    }
+
+    function normalizeDistrict(s) {
+      return (s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+    }
+    // Track which state's districts are currently loading (for spinner UI)
+    let districtLoadingFor = null;
+
+    /* ════════════════════════════════════════════════════════════
+       CITIES + TOWNS LOADER (OpenStreetMap Overpass API)
+       Given a state + district name, fetches all place=city and
+       place=town nodes within that district's administrative area.
+       Results cached per (state, district) so we never refetch.
+       Villages are intentionally excluded — there are too many for
+       a dropdown. Villages can be accessed via GPS/search later.
+       ════════════════════════════════════════════════════════════ */
+    const cityCache = new Map();       // "state|district" -> Promise<Array<{name,lat,lng,place,population}>>
+    let cityLoadingFor = null;          // "state|district" currently being fetched (for spinner)
+    const OVERPASS_ENDPOINTS = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.osm.ch/api/interpreter'
+    ];
+
+    async function loadCitiesForDistrict(stateName, districtName) {
+      const cacheKey = `${stateName}|${districtName}`;
+      if (cityCache.has(cacheKey)) return cityCache.get(cacheKey);
+
+      const qlStateName = stateName.replace(/"/g, '\\"');
+      const qlDistrictName = districtName.replace(/"/g, '\\"');
+
+      // Multiple query strategies tried in order.
+      // OSM India tagging is inconsistent: some districts are admin_level=5,
+      // some are 6, some have "district" suffix in the name, some are only
+      // tagged as nodes not boundaries. We try broad-to-narrow until we get hits.
+      const queries = [
+        // Strategy 1: state-scoped, admin_level 5/6/7, name with optional "District" suffix
+        `[out:json][timeout:25];
+         area["name"="${qlStateName}"]["boundary"="administrative"]->.state;
+         relation(area.state)["boundary"="administrative"]["admin_level"~"^[567]$"]["name"~"^${qlDistrictName}( [Dd]istrict)?$"];
+         map_to_area->.d;
+         (
+           node(area.d)["place"~"^(city|town|village|suburb|neighbourhood)$"];
+         );
+         out body;`,
+
+        // Strategy 2: state-scoped, name only (no admin_level constraint)
+        `[out:json][timeout:25];
+         area["name"="${qlStateName}"]["boundary"="administrative"]->.state;
+         relation(area.state)["boundary"="administrative"]["name"~"^${qlDistrictName}( [Dd]istrict)?$"];
+         map_to_area->.d;
+         (
+           node(area.d)["place"~"^(city|town|village|suburb|neighbourhood)$"];
+         );
+         out body;`,
+
+        // Strategy 3: area lookup by name + state disambiguation via bbox
+        // (avoids matching "Cuddalore" in another country)
+        `[out:json][timeout:25];
+         area["name"="${qlStateName}"]["boundary"="administrative"]->.state;
+         area["name"="${qlDistrictName}"]["boundary"="administrative"](area.state)->.d;
+         (
+           node(area.d)["place"~"^(city|town|village|suburb|neighbourhood)$"];
+         );
+         out body;`,
+
+        // Strategy 4 (last resort): nodes within ~80 km of the district's named place node in this state
+        `[out:json][timeout:25];
+         area["name"="${qlStateName}"]["boundary"="administrative"]->.state;
+         node(area.state)["name"="${qlDistrictName}"]["place"~"^(city|town|municipality)$"]->.center;
+         (
+           node(around.center:80000)["place"~"^(city|town|village|suburb|neighbourhood)$"];
+         );
+         out body;`
+      ];
+
+      const fetchQuery = async (query, signal) => {
+        let lastErr;
+        for (const endpoint of OVERPASS_ENDPOINTS) {
+          try {
+            const r = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: 'data=' + encodeURIComponent(query),
+              signal
+            });
+            if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+            return await r.json();
+          } catch (e) { lastErr = e; }
+        }
+        throw lastErr || new Error('All endpoints failed');
+      };
+
+      const p = (async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second hard timeout
+
+        try {
+          for (let i = 0; i < queries.length; i++) {
+            if (controller.signal.aborted) throw new Error('Timeout');
+            try {
+              const data = await fetchQuery(queries[i], controller.signal);
+              const els = (data && data.elements) || [];
+              console.log(`[cities] Strategy ${i + 1} for ${districtName}: ${els.length} raw results`);
+              if (els.length > 0) {
+                const seen = new Set();
+                const cities = [];
+                els.forEach(el => {
+                  if (!el.tags || !el.tags.name) return;
+                  const name = el.tags['name:en'] || el.tags.name;
+                  const key = name.toLowerCase();
+                  if (seen.has(key)) return;
+                  seen.add(key);
+                  const pop = parseInt(el.tags.population, 10) || 0;
+                  cities.push({
+                    name, lat: el.lat, lng: el.lon,
+                    place: el.tags.place, population: pop
+                  });
+                });
+                cities.sort((a, b) => {
+                  if (a.place !== b.place) return a.place === 'city' ? -1 : 1;
+                  if (b.population !== a.population) return b.population - a.population;
+                  return a.name.localeCompare(b.name);
+                });
+                console.log(`[cities] ✓ Loaded ${cities.length} places for ${districtName} via strategy ${i + 1}`);
+                clearTimeout(timeoutId);
+                return cities;
+              }
+            } catch (e) {
+              console.warn(`[cities] Strategy ${i + 1} failed for ${districtName}:`, e.message);
+            }
+          }
+          console.warn(`[cities] All 4 strategies returned 0 results for ${districtName}`);
+          clearTimeout(timeoutId);
+          return [];
+        } catch (err) {
+          clearTimeout(timeoutId);
+          throw err;
+        }
+      })().catch(e => {
+        console.warn('[cities] Overpass fetch failed/timed out:', e.message);
+        cityCache.delete(cacheKey);
+        return null;
+      });
+
+      cityCache.set(cacheKey, p);
+      return p;
+    }
+
+    /* ── Render helpers ── */
+    function getList(which, q) {
+      q = q.toLowerCase();
+      if (which === 'nation') return NATIONS.filter(n => n.name.toLowerCase().includes(q));
+      if (which === 'state') return INDIA.filter(s => s.state.toLowerCase().includes(q));
+      if (which === 'district') {
+        if (!selState) return [];
+        // Prefer the full dynamic list if already loaded, else fall back to manual list
+        const full = selState._fullDistricts;
+        const source = full || selState.districts;
+        return source.filter(d => d.d.toLowerCase().includes(q));
+      }
+      if (which === 'city') {
+        if (!selDistrict) return [];
+        // Prefer the full dynamic list loaded via Overpass, else fall back to manual/district-name list
+        const full = selDistrict._fullCities;  // Array<{name,lat,lng,place,population}>
+        if (full) {
+          // full objects; dropdown shows only .name but we return whole objects so pickCity gets coords
+          return full.filter(c => c.name.toLowerCase().includes(q));
+        }
+        return selDistrict.cities.filter(c => (typeof c === 'string' ? c : c.name).toLowerCase().includes(q));
+      }
+      return [];
+    }
+
+    function renderOpts(which, q) {
+      const el = document.getElementById(which + 'Opts');
+      el.innerHTML = '';
+
+      // Loading indicator if district list is being fetched
+      if (which === 'district' && selState && !selState._fullDistricts && districtLoadingFor === selState.state) {
+        const d = document.createElement('div');
+        d.className = 'sel-option';
+        d.style.color = 'var(--accent2)';
+        d.textContent = 'Loading full district list…';
+        el.appendChild(d);
+        return;
+      }
+
+      // Loading indicator if city list is being fetched from Overpass
+      if (which === 'city' && selDistrict && !selDistrict._fullCities &&
+          cityLoadingFor === `${selState && selState.state}|${selDistrict.d}`) {
+        const d = document.createElement('div');
+        d.className = 'sel-option';
+        d.style.color = 'var(--accent2)';
+        d.textContent = 'Loading cities & towns…';
+        el.appendChild(d);
+        return;
+      }
+
+      const items = getList(which, q);
+
+      // Render items — use DocumentFragment for performance on large lists
+      const frag = document.createDocumentFragment();
+      items.forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'sel-option';
+        // Text rendering based on type
+        if (which === 'nation') d.textContent = item.name;
+        else if (which === 'state') d.textContent = item.state;
+        else if (which === 'district') d.textContent = item.d;
+        else {
+          // city: item may be a plain string (legacy manual list) or an object {name, place, population}
+          if (typeof item === 'string') {
+            d.textContent = item;
+          } else {
+            d.innerHTML = `<span class="ci-name">${item.name}</span>` +
+              (item.place ? `<span class="ci-type">${item.place}</span>` : '');
+          }
+        }
+        d.onclick = () => which === 'nation' ? pickNation(item)
+                       : which === 'state' ? pickState(item)
+                       : which === 'district' ? pickDistrict(item)
+                       : pickCity(item);
+        frag.appendChild(d);
+      });
+      el.appendChild(frag);
+
+      if (items.length === 0) {
+        const d = document.createElement('div');
+        d.className = 'sel-option';
+        d.style.color = 'var(--text3)';
+        d.textContent = 'No results';
+        el.appendChild(d);
+      }
+    }
+
+    function toggleDrop(which) {
+      const drop = document.getElementById(which + 'Drop');
+      const disp = document.getElementById(which + 'Disp');
+      const isOpen = drop.classList.contains('open');
+      closeAllDrops();
+      if (!isOpen) {
+        drop.classList.add('open');
+        disp.classList.add('open');
+        const inp = document.getElementById(which + 'Search');
+        if (inp) { inp.value = ''; inp.focus(); }
+        renderOpts(which, '');
+      }
+    }
+
+    function closeAllDrops() {
+      ['nation', 'state', 'district', 'city'].forEach(w => {
+        const drop = document.getElementById(w + 'Drop');
+        const disp = document.getElementById(w + 'Disp');
+        if (drop) drop.classList.remove('open');
+        if (disp) disp.classList.remove('open');
+      });
+    }
+
+    function filterOpts(which, q) { renderOpts(which, q); }
+
+    function setDisplay(which, text, isChosen) {
+      const el = document.getElementById(which + 'Txt');
+      if (!el) return;
+      el.textContent = text;
+      el.className = isChosen ? 'chosen' : 'placeholder';
+    }
+
+    /* ══ NATION PICK — triggers the cinematic fly-in + morph ══ */
+    function pickNation(n) {
+      selNation = n; selState = null; selDistrict = null; selCity = null;
+      closeAllDrops();
+      setDisplay('nation', n.name, true);
+      // Mark step 1 done, enable step 2 (state)
+      document.getElementById('step1').classList.add('done');
+      document.getElementById('step2').classList.add('active');
+      document.getElementById('step3').classList.remove('active', 'done');
+      document.getElementById('step4').classList.remove('active', 'done');
+      setDisplay('state', 'Choose a state…', false);
+      setDisplay('district', 'Choose a district…', false);
+      setDisplay('city', 'Choose a city or town…', false);
+      document.getElementById('aqiPreview').classList.remove('show');
+      document.getElementById('proceedBtn').classList.remove('show');
+      liveAQI = null;
+
+      // Cinematic fly-in: only India is currently supported
+      if (window.indiaGlobe && n.code === 'IN') {
+        window.indiaGlobe.flyToNation('IN', getMockStateAQIs());
+        // Show drag/scroll hint + AQI legend after map appears
+        setTimeout(() => {
+          const hint = document.getElementById('controlsHint');
+          const legend = document.getElementById('aqiLegend');
+          if (hint) hint.classList.add('show');
+          if (legend) legend.classList.add('show');
+        }, 1500);
+      }
+    }
+
+    function pickState(s) {
+      selState = s; selDistrict = null; selCity = null;
+      closeAllDrops();
+      setDisplay('state', s.state, true);
+      // Step 2 (State) done, Step 3 (District) becomes active
+      document.getElementById('step2').classList.add('done');
+      document.getElementById('step3').classList.add('active');
+      document.getElementById('step4').classList.remove('active', 'done');
+      setDisplay('district', 'Loading districts…', false);
+      setDisplay('city', 'Choose a city or town…', false);
+      document.getElementById('aqiPreview').classList.remove('show');
+      document.getElementById('proceedBtn').classList.remove('show');
+      liveAQI = null;
+      // Zoom 3D globe into this state, showing districts with AQI colors
+      if (window.indiaGlobe) {
+        window.indiaGlobe.zoomToState(s.state, getMockDistrictAQIs(s.state));
+      }
+      // Kick off full district data load in parallel (attaches to selState when done)
+      districtLoadingFor = s.state;
+      loadAllDistrictsForState(s.state).then(list => {
+        if (districtLoadingFor !== s.state) return; // user moved on
+        if (list && selState === s) {
+          s._fullDistricts = list;
+          setDisplay('district', `Choose a district… (${list.length} available)`, false);
+          console.log(`[districts] Loaded ${list.length} districts for ${s.state}`);
+          // If dropdown is currently open, refresh its contents
+          const drop = document.getElementById('districtDrop');
+          if (drop && drop.classList.contains('open')) renderOpts('district', '');
+        } else {
+          // Fallback to existing manual list
+          setDisplay('district', 'Choose a district…', false);
+        }
+      });
+    }
+
+    function pickDistrict(dist) {
+      selDistrict = dist; selCity = null;
+      closeAllDrops();
+      setDisplay('district', dist.d, true);
+      // Step 3 (District) done, Step 4 (City) becomes active
+      document.getElementById('step3').classList.add('done');
+      document.getElementById('step4').classList.add('active');
+      setDisplay('city', 'Loading cities & towns…', false);
+      document.getElementById('aqiPreview').classList.remove('show');
+      document.getElementById('proceedBtn').classList.remove('show');
+      liveAQI = null;
+      // Zoom 3D globe into this district, showing cities as glowing pins
+      if (window.indiaGlobe && selState) {
+        const cityData = getMockCityAQIs(selState.state, dist.d);
+        window.indiaGlobe.zoomToDistrict(dist.d, cityData);
+      }
+
+      // Kick off the Overpass query for all cities/towns in this district
+      const loadKey = `${selState ? selState.state : ''}|${dist.d}`;
+      cityLoadingFor = loadKey;
+      loadCitiesForDistrict(selState.state, dist.d).then(cities => {
+        if (cityLoadingFor !== loadKey) return;   // user moved on
+        if (cities && cities.length && selDistrict === dist) {
+          dist._fullCities = cities;
+          const cityLabel = cities.length === 1
+            ? `Choose a city or town… (1 place)`
+            : `Choose a city or town… (${cities.length} places)`;
+          setDisplay('city', cityLabel, false);
+          // If the city dropdown is currently open, re-render with the new data
+          const drop = document.getElementById('cityDrop');
+          if (drop && drop.classList.contains('open')) renderOpts('city', '');
+          // Also: if the globe's district view is currently showing this district, update its pins
+          if (window.indiaGlobe && window.indiaGlobe.updateDistrictCities) {
+            window.indiaGlobe.updateDistrictCities(dist.d, cities, selState.state);
+          }
+        } else if (selDistrict === dist) {
+          // Overpass returned nothing — fall back to at least the district itself
+          // so user isn't stuck with an empty/loading dropdown
+          const TN_FALLBACKS = {
+            'Chennai': ['Adyar', 'Anna Nagar', 'T. Nagar', 'Velachery', 'Tambaram', 'Mylapore', 'Guindy', 'Thiruvanmiyur', 'Manali', 'Tondiarpet', 'Ambattur', 'Perambur'],
+            'Cuddalore': ['Cuddalore', 'Neyveli', 'Chidambaram', 'Panruti', 'Vadalur', 'Nellikuppam', 'Kurinjipadi', 'Bhuvanagiri', 'Kattumannarkoil'],
+            'Coimbatore': ['Coimbatore', 'Pollachi', 'Mettupalayam', 'Valparai', 'Sulur', 'Kinathukadavu'],
+            'Kanchipuram': ['Kanchipuram', 'Sriperumbudur', 'Uthiramerur', 'Walajabad'],
+            'Chengalpattu': ['Chengalpattu', 'Tambaram', 'Pallavaram', 'Mahabalipuram', 'Madurantakam', 'Maraimalai Nagar'],
+            'Tiruvallur': ['Tiruvallur', 'Avadi', 'Poonamallee', 'Ponneri', 'Gummidipoondi', 'Minjur'],
+            'Madurai': ['Madurai', 'Melur', 'Thirumangalam', 'Usilampatti', 'Vadipatti'],
+            'Tiruchirappalli': ['Tiruchirappalli', 'Srirangam', 'Manapparai', 'Thuraiyur', 'Lalgudi'],
+            'Salem': ['Salem', 'Attur', 'Mettur', 'Edappadi', 'Omalur', 'Sankari']
+          };
+          
+          let fallbackList = [];
+          if (selState.state === 'Tamil Nadu' && TN_FALLBACKS[dist.d]) {
+             fallbackList = TN_FALLBACKS[dist.d].map(c => ({ name: c, lat: null, lng: null, place: 'city', population: 0 }));
+          } else {
+             fallbackList = [{ name: dist.d, lat: null, lng: null, place: 'city', population: 0 }];
+          }
+          
+          dist._fullCities = fallbackList;
+          setDisplay('city', 'Choose a city or town… (limited data)', false);
+          const drop = document.getElementById('cityDrop');
+          if (drop && drop.classList.contains('open')) renderOpts('city', '');
+        }
+      });
+    }
+
+    function pickCity(city) {
+      // city may be a string (legacy) or an object {name, lat, lng, place, population}
+      const cityName = typeof city === 'string' ? city : city.name;
+      selCity = city;
+      closeAllDrops();
+      setDisplay('city', cityName, true);
+      // Step 4 (City) done
+      document.getElementById('step4').classList.add('done');
+      // Highlight this city pin on the 3D district map
+      if (window.indiaGlobe && window.indiaGlobe.highlightCity) {
+        window.indiaGlobe.highlightCity(cityName);
+      }
+      fetchLiveAQIForCity(cityName);
+    }
+
+    document.addEventListener('click', e => { if (!e.target.closest('.sel-wrap')) closeAllDrops(); });
+
+    /* ══ LIVE AQI FETCH ══ */
+    async function fetchLiveAQIForCity(city) {
+      const preview = document.getElementById('aqiPreview');
+      preview.classList.add('show');
+      document.getElementById('prevLoc').textContent = city.toUpperCase();
+      document.getElementById('prevAQI').innerHTML = '<span class="spin"></span>';
+      document.getElementById('prevLabel').textContent = 'Fetching live data…';
+      document.getElementById('prevStation').textContent = '—';
+      document.getElementById('proceedBtn').classList.remove('show');
+
+      const terms = [city, city + ' ' + (selDistrict?.d || ''), city + ' ' + (selState?.state || '')];
+      let found = false;
+
+      for (const term of terms) {
+        if (found) break;
+        try {
+          const r = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(term)}/?token=${WAQI}`);
+          const d = await r.json();
+          if (d.status === 'ok' && d.data.aqi) {
+            liveAQI = d.data.aqi;
+            renderAQIPreview(d.data, city);
+            found = true;
+          }
+        } catch (e) { }
+      }
+
+      // Fallback: search endpoint
+      if (!found) {
+        try {
+          const r = await fetch(`https://api.waqi.info/search/?token=${WAQI}&keyword=${encodeURIComponent(city)}`);
+          const d = await r.json();
+          if (d.status === 'ok' && d.data.length > 0) {
+            const uid = d.data[0].uid;
+            const r2 = await fetch(`https://api.waqi.info/feed/@${uid}/?token=${WAQI}`);
+            const d2 = await r2.json();
+            if (d2.status === 'ok') {
+              liveAQI = d2.data.aqi;
+              renderAQIPreview(d2.data, city);
+              found = true;
+            }
+          }
+        } catch (e) { }
+      }
+
+      if (!found) {
+        const col = '#7a9fc0';
+        document.getElementById('prevAQI').textContent = '—';
+        document.getElementById('prevAQI').style.color = col;
+        document.getElementById('prevLabel').textContent = 'No nearby station';
+        document.getElementById('prevLabel').style.color = col;
+        document.getElementById('prevStation').textContent = 'Will use district data on dashboard';
+        liveAQI = null;
+      }
+
+      document.getElementById('proceedBtn').classList.add('show');
+    }
+
+    function renderAQIPreview(data, city) {
+      const aqi = data.aqi;
+      const col = aqiC(aqi);
+      document.getElementById('prevAQI').textContent = aqi;
+      document.getElementById('prevAQI').style.color = col;
+      document.getElementById('prevLabel').textContent = aqiL(aqi);
+      document.getElementById('prevLabel').style.color = col;
+      document.getElementById('prevStation').textContent = data.city?.name || city;
+      const t = data.time?.s ? new Date(data.time.s).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+      document.getElementById('prevTime').textContent = t ? 'Updated ' + t : '';
+      const ia = data.iaqi || {};
+      document.getElementById('pvPM25').textContent = ia.pm25?.v ?? '—';
+      document.getElementById('pvPM10').textContent = ia.pm10?.v ?? '—';
+      document.getElementById('pvNO2').textContent = ia.no2?.v ?? '—';
+      document.getElementById('pvO3').textContent = ia.o3?.v ?? '—';
+      document.getElementById('pvSO2').textContent = ia.so2?.v ?? '—';
+      document.getElementById('pvCO').textContent = ia.co?.v ?? '—';
+    }
+
+    async function launchFromPicker() {
+      if (!selCity) return;
+      const cityName = typeof selCity === 'string' ? selCity : selCity.name;
+      const code = cityName.toLowerCase().replace(/\s+/g, '-');
+      sessionStorage.setItem('selectedCity', code);
+      sessionStorage.setItem('selectedAQI', liveAQI || '');
+      // Persist precise coordinates so the dashboard fetches live weather + AQI
+      // for the exact town/village instead of a fuzzy name match.
+      let lat = (typeof selCity === 'object' && selCity.lat) ? selCity.lat : null;
+      let lng = (typeof selCity === 'object' && selCity.lng) ? selCity.lng : null;
+      if (lat == null || lng == null) {
+        try {
+          const q = [cityName, selDistrict?.d, selState?.state].filter(Boolean).join(', ');
+          const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=5&language=en&format=json`);
+          const j = await r.json();
+          const pick = (j.results || []).find(x => x.country_code === 'IN') || (j.results || [])[0];
+          if (pick) { lat = pick.latitude; lng = pick.longitude; }
+        } catch (e) { /* ignore — dashboard will still geocode by name */ }
+      }
+      if (lat != null && lng != null) {
+        sessionStorage.setItem('selectedLat', lat);
+        sessionStorage.setItem('selectedLng', lng);
+      } else {
+        sessionStorage.removeItem('selectedLat');
+        sessionStorage.removeItem('selectedLng');
+      }
+      launchDash(cityName, liveAQI, code);
+    }
+
+    /* ══ GPS — HIGH ACCURACY + REVERSE GEOCODE ══ */
+    function startGPS() {
+      goTo('s-gps');
+      const gst = document.getElementById('gst');
+      const gb = document.getElementById('gb');
+
+      if (!navigator.geolocation) {
+        gst.textContent = 'GPS NOT SUPPORTED — SWITCHING TO MANUAL';
+        setTimeout(startPicker, 2000);
+        return;
+      }
+
+      gst.textContent = 'REQUESTING GPS PERMISSION…';
+
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          gst.textContent = 'GPS LOCKED · ±' + Math.round(accuracy) + 'm ACCURACY';
+          gb.style.width = '30%';
+          document.getElementById('coords').innerHTML = `LAT ${lat.toFixed(5)}<br>LNG ${lng.toFixed(5)}`;
+
+          // Start the cinematic drill-down: world → India (fly-in + morph), then → your state
+          if (window.indiaGlobe) {
+            window.indiaGlobe.flyToNation('IN', getMockStateAQIs());
+          }
+
+          // Step 1: Reverse geocode for accurate locality via Nominatim
+          let locality = null;
+          try {
+            gst.textContent = 'RESOLVING NEIGHBOURHOOD…';
+            gb.style.width = '45%';
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+              { headers: { 'Accept-Language': 'en-US,en' } }
+            );
+            const geo = await res.json();
+            const a = geo.address || {};
+            // Most specific → least specific
+            locality = a.suburb || a.neighbourhood || a.village || a.quarter || a.town || a.city_district || a.city || null;
+            if (locality) gst.textContent = 'FOUND: ' + locality.toUpperCase();
+
+            // If we resolved the state, drill deeper after the fly-in+morph completes (~4 seconds)
+            const stateName = a.state;
+            if (stateName && window.indiaGlobe) {
+              const matched = INDIA.find(s =>
+                s.state.toLowerCase() === stateName.toLowerCase() ||
+                s.state.toLowerCase().includes(stateName.toLowerCase()) ||
+                stateName.toLowerCase().includes(s.state.toLowerCase())
+              );
+              if (matched) {
+                setTimeout(() => {
+                  window.indiaGlobe.zoomToState(matched.state, getMockDistrictAQIs(matched.state));
+                }, 4200);
+              }
+            }
+          } catch (e) {
+            gst.textContent = 'GEOCODE FAILED, USING COORDINATES…';
+          }
+
+          gb.style.width = '60%';
+          gst.textContent = 'FETCHING LIVE AQI…';
+
+          let aqiVal = null, displayName = locality || 'Your Location', aqiData = null;
+
+          // Method A: WAQI nearest-station by geo coords
+          try {
+            const r = await fetch(`https://api.waqi.info/feed/geo:${lat};${lng}/?token=${WAQI}`);
+            const d = await r.json();
+            if (d.status === 'ok' && d.data.aqi) {
+              aqiVal = d.data.aqi;
+              aqiData = d.data;
+            }
+          } catch (e) { }
+
+          // Method B: If locality resolved, try searching that name specifically
+          // This gives a station actually in your neighbourhood vs the nearest geo station
+          if (locality) {
+            try {
+              const r2 = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(locality)}/?token=${WAQI}`);
+              const d2 = await r2.json();
+              if (d2.status === 'ok' && d2.data.aqi) {
+                aqiVal = d2.data.aqi;
+                aqiData = d2.data;
+                displayName = locality;
+              }
+            } catch (e) { }
+          }
+
+          // Method C: Open-Meteo Air Quality — works for ANY lat/lng globally
+          // (every town/village), so GPS never has to fall back to manual.
+          if (aqiVal === null) {
+            try {
+              const r3 = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide&timezone=auto`);
+              const d3 = await r3.json();
+              const c = d3.current || {};
+              if (c.us_aqi != null) {
+                aqiVal = Math.round(c.us_aqi);
+              }
+            } catch (e) { }
+          }
+
+          gb.style.width = '90%';
+
+          // Always persist precise coords so the dashboard fetches accurate
+          // live weather + AQI for the exact GPS point.
+          sessionStorage.setItem('selectedLat', lat);
+          sessionStorage.setItem('selectedLng', lng);
+
+          if (aqiVal !== null) {
+            gst.textContent = '✓ ' + displayName.toUpperCase();
+            document.getElementById('lca').textContent = aqiVal;
+            document.getElementById('lca').style.color = aqiC(aqiVal);
+            document.getElementById('lcs').textContent = aqiL(aqiVal);
+            document.getElementById('lcs').style.color = aqiC(aqiVal);
+            document.getElementById('lcp').textContent = displayName;
+            document.getElementById('lcard').classList.add('show');
+            gb.style.width = '100%';
+            const code = displayName.toLowerCase().replace(/\s+/g, '-');
+            sessionStorage.setItem('selectedCity', code);
+            sessionStorage.setItem('selectedAQI', aqiVal);
+            setTimeout(() => launchDash(displayName, aqiVal, code), 1100);
+          } else {
+            // Even without any AQI reading we still have precise coords — proceed
+            // to the dashboard, which will pull live weather + regional AQI.
+            gst.textContent = '✓ ' + displayName.toUpperCase();
+            document.getElementById('lca').textContent = '—';
+            document.getElementById('lcs').textContent = 'Live data on dashboard';
+            document.getElementById('lcp').textContent = displayName;
+            document.getElementById('lcard').classList.add('show');
+            gb.style.width = '100%';
+            const code = displayName.toLowerCase().replace(/\s+/g, '-');
+            sessionStorage.setItem('selectedCity', code);
+            sessionStorage.setItem('selectedAQI', '');
+            setTimeout(() => launchDash(displayName, null, code), 1200);
+          }
+        },
+        err => {
+          const msgs = { 1: 'PERMISSION DENIED', 2: 'POSITION UNAVAILABLE', 3: 'LOCATION TIMEOUT' };
+          gst.textContent = (msgs[err.code] || 'GPS ERROR') + ' — SWITCHING TO MANUAL';
+          setTimeout(startPicker, 1800);
+        },
+        {
+          enableHighAccuracy: true,   // Force GPS chip, not WiFi/cell-tower
+          timeout: 16000,
+          maximumAge: 0               // Always fresh reading, no cache
+        }
+      );
+    }
+
+    /* ══ LAUNCH DASHBOARD ══ */
+    async function launchDash(name, aqi, code) {
+      goTo('s-load');
+      const c = code || name.toLowerCase().replace(/\s+/g, '-');
+      document.getElementById('lcity').textContent = name.toUpperCase();
+      const bar = document.getElementById('lbar'), st = document.getElementById('lstat');
+      for (const [p, msg] of [
+        [15, 'CONNECTING TO WAQI…'], [35, 'FETCHING LIVE AQI…'],
+        [55, 'LOADING WEATHER DATA…'], [72, 'INITIALISING AI ADVISOR…'],
+        [88, 'BUILDING DASHBOARD…'], [100, 'READY ✓']
+      ]) {
+        bar.style.width = p + '%'; st.textContent = msg;
+        await new Promise(r => setTimeout(r, 280));
+      }
+      sessionStorage.setItem('selectedCity', c);
+      sessionStorage.setItem('selectedAQI', aqi || '');
+      await new Promise(r => setTimeout(r, 320));
+      window.location.href = 'air_pollution.html?city=' + encodeURIComponent(c);
+    }
+
+    /* ══ COORDS DISPLAY ══ */
+    document.addEventListener('mousemove', e => {
+      const x = ((e.clientX / innerWidth) * 360 - 180).toFixed(3);
+      const y = ((1 - e.clientY / innerHeight) * 180 - 90).toFixed(3);
+      document.getElementById('coords').innerHTML = `LAT ${y > 0 ? '+' : ''}${y}°<br>LNG ${x > 0 ? '+' : ''}${x}°`;
+    });
+  </script>
+
+  <script type="module">
+    import { Renderer, Program, Triangle, Mesh } from 'https://esm.sh/ogl@1.0.11';
+
+    const hexToRgb = (hex) => {
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return m ? [parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255] : [1,1,1];
+    };
+    const getAnchorAndDir = (origin, w, h) => {
+      const outside = 0.2;
+      switch (origin) {
+        case 'top-left': return { anchor: [0, -outside*h], dir: [0,1] };
+        case 'top-right': return { anchor: [w, -outside*h], dir: [0,1] };
+        case 'left': return { anchor: [-outside*w, 0.5*h], dir: [1,0] };
+        case 'right': return { anchor: [(1+outside)*w, 0.5*h], dir: [-1,0] };
+        case 'bottom-left': return { anchor: [0, (1+outside)*h], dir: [0,-1] };
+        case 'bottom-center': return { anchor: [0.5*w, (1+outside)*h], dir: [0,-1] };
+        case 'bottom-right': return { anchor: [w, (1+outside)*h], dir: [0,-1] };
+        default: return { anchor: [0.5*w, -outside*h], dir: [0,1] };
+      }
+    };
+
+    const opts = {
+      raysOrigin: 'top-center',
+      raysColor: '#00ffff',
+      raysSpeed: 1.5,
+      lightSpread: 0.8,
+      rayLength: 1.2,
+      pulsating: false,
+      fadeDistance: 1.0,
+      saturation: 1.0,
+      followMouse: true,
+      mouseInfluence: 0.1,
+      noiseAmount: 0.1,
+      distortion: 0.05
+    };
+
+    const container = document.getElementById('spaceBg');
+    const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), alpha: true });
+    const gl = renderer.gl;
+    gl.canvas.style.width = '100%';
+    gl.canvas.style.height = '100%';
+    container.appendChild(gl.canvas);
+
+    const vert = `
+      attribute vec2 position;
+      varying vec2 vUv;
+      void main() { vUv = position*0.5+0.5; gl_Position = vec4(position, 0.0, 1.0); }
+    `;
+    const frag = `precision highp float;
+      uniform float iTime;
+      uniform vec2 iResolution;
+      uniform vec2 rayPos;
+      uniform vec2 rayDir;
+      uniform vec3 raysColor;
+      uniform float raysSpeed;
+      uniform float lightSpread;
+      uniform float rayLength;
+      uniform float pulsating;
+      uniform float fadeDistance;
+      uniform float saturation;
+      uniform vec2 mousePos;
+      uniform float mouseInfluence;
+      uniform float noiseAmount;
+      uniform float distortion;
+      varying vec2 vUv;
+      float noise(vec2 st){ return fract(sin(dot(st.xy, vec2(12.9898,78.233)))*43758.5453123); }
+      float rayStrength(vec2 raySource, vec2 rayRefDirection, vec2 coord, float seedA, float seedB, float speed) {
+        vec2 sourceToCoord = coord - raySource;
+        vec2 dirNorm = normalize(sourceToCoord);
+        float cosAngle = dot(dirNorm, rayRefDirection);
+        float distortedAngle = cosAngle + distortion * sin(iTime*2.0 + length(sourceToCoord)*0.01) * 0.2;
+        float spreadFactor = pow(max(distortedAngle, 0.0), 1.0/max(lightSpread, 0.001));
+        float distance = length(sourceToCoord);
+        float maxDistance = iResolution.x * rayLength;
+        float lengthFalloff = clamp((maxDistance - distance)/maxDistance, 0.0, 1.0);
+        float fadeFalloff = clamp((iResolution.x*fadeDistance - distance)/(iResolution.x*fadeDistance), 0.5, 1.0);
+        float pulse = pulsating > 0.5 ? (0.8 + 0.2*sin(iTime*speed*3.0)) : 1.0;
+        float baseStrength = clamp(
+          (0.45 + 0.15*sin(distortedAngle*seedA + iTime*speed)) +
+          (0.3 + 0.2*cos(-distortedAngle*seedB + iTime*speed)),
+          0.0, 1.0);
+        return baseStrength * lengthFalloff * fadeFalloff * spreadFactor * pulse;
+      }
+      void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+        vec2 coord = vec2(fragCoord.x, iResolution.y - fragCoord.y);
+        vec2 finalRayDir = rayDir;
+        if (mouseInfluence > 0.0) {
+          vec2 mouseScreenPos = mousePos * iResolution.xy;
+          vec2 mouseDirection = normalize(mouseScreenPos - rayPos);
+          finalRayDir = normalize(mix(rayDir, mouseDirection, mouseInfluence));
+        }
+        vec4 rays1 = vec4(1.0) * rayStrength(rayPos, finalRayDir, coord, 36.2214, 21.11349, 1.5*raysSpeed);
+        vec4 rays2 = vec4(1.0) * rayStrength(rayPos, finalRayDir, coord, 22.3991, 18.0234, 1.1*raysSpeed);
+        fragColor = rays1*0.5 + rays2*0.4;
+        if (noiseAmount > 0.0) {
+          float n = noise(coord*0.01 + iTime*0.1);
+          fragColor.rgb *= (1.0 - noiseAmount + noiseAmount*n);
+        }
+        float brightness = 1.0 - (coord.y/iResolution.y);
+        fragColor.x *= 0.1 + brightness*0.8;
+        fragColor.y *= 0.3 + brightness*0.6;
+        fragColor.z *= 0.5 + brightness*0.5;
+        if (saturation != 1.0) {
+          float gray = dot(fragColor.rgb, vec3(0.299, 0.587, 0.114));
+          fragColor.rgb = mix(vec3(gray), fragColor.rgb, saturation);
+        }
+        fragColor.rgb *= raysColor;
+      }
+      void main() { vec4 color; mainImage(color, gl_FragCoord.xy); gl_FragColor = color; }
+    `;
+
+    const uniforms = {
+      iTime: { value: 0 },
+      iResolution: { value: [1,1] },
+      rayPos: { value: [0,0] },
+      rayDir: { value: [0,1] },
+      raysColor: { value: hexToRgb(opts.raysColor) },
+      raysSpeed: { value: opts.raysSpeed },
+      lightSpread: { value: opts.lightSpread },
+      rayLength: { value: opts.rayLength },
+      pulsating: { value: opts.pulsating ? 1.0 : 0.0 },
+      fadeDistance: { value: opts.fadeDistance },
+      saturation: { value: opts.saturation },
+      mousePos: { value: [0.5, 0.5] },
+      mouseInfluence: { value: opts.mouseInfluence },
+      noiseAmount: { value: opts.noiseAmount },
+      distortion: { value: opts.distortion }
+    };
+    const geometry = new Triangle(gl);
+    const program = new Program(gl, { vertex: vert, fragment: frag, uniforms });
+    const mesh = new Mesh(gl, { geometry, program });
+
+    const mouse = { x: 0.5, y: 0.5 };
+    const smoothMouse = { x: 0.5, y: 0.5 };
+
+    function updatePlacement() {
+      renderer.dpr = Math.min(window.devicePixelRatio, 2);
+      const wCSS = container.clientWidth || window.innerWidth;
+      const hCSS = container.clientHeight || window.innerHeight;
+      renderer.setSize(wCSS, hCSS);
+      const dpr = renderer.dpr;
+      const w = wCSS*dpr, h = hCSS*dpr;
+      uniforms.iResolution.value = [w, h];
+      const { anchor, dir } = getAnchorAndDir(opts.raysOrigin, w, h);
+      uniforms.rayPos.value = anchor;
+      uniforms.rayDir.value = dir;
+    }
+    window.addEventListener('resize', updatePlacement);
+    updatePlacement();
+
+    if (opts.followMouse) {
+      window.addEventListener('mousemove', (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = (e.clientX - rect.left)/rect.width;
+        mouse.y = (e.clientY - rect.top)/rect.height;
+      });
+    }
+
+    function loop(t) {
+      uniforms.iTime.value = t*0.001;
+      if (opts.followMouse && opts.mouseInfluence > 0) {
+        const s = 0.92;
+        smoothMouse.x = smoothMouse.x*s + mouse.x*(1-s);
+        smoothMouse.y = smoothMouse.y*s + mouse.y*(1-s);
+        uniforms.mousePos.value = [smoothMouse.x, smoothMouse.y];
+      }
+      renderer.render({ scene: mesh });
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+
+</body>
+
+</html>

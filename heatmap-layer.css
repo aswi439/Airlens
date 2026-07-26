@@ -1,0 +1,168 @@
+/* AirLens — Pollutant Heatmap UI (dark glassmorphism, matches dashboard tokens) */
+
+.al-heat-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 900;
+  background: color-mix(in oklab, var(--surface, #0f1620) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: var(--radius-lg, 14px);
+  padding: 10px 12px;
+  min-width: 190px;
+  max-width: 220px;
+  color: var(--text, #e6ecf3);
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.al-heat-panel-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.al-heat-panel-hint { color: var(--text3, #8ba2be); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.al-heat-panel-tip { text-transform: none; letter-spacing: 0; font-style: italic; opacity: .8; }
+
+/* Toggle */
+.al-heat-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.al-heat-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.al-heat-toggle-slider {
+  width: 32px; height: 18px; border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  position: relative; transition: background .18s ease;
+  flex-shrink: 0;
+}
+.al-heat-toggle-slider::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: transform .18s ease;
+}
+.al-heat-toggle input:checked + .al-heat-toggle-slider { background: #4aa3ff; }
+.al-heat-toggle input:checked + .al-heat-toggle-slider::after { transform: translateX(14px); }
+.al-heat-toggle-label { font-weight: 600; }
+
+/* Radius buttons */
+.al-heat-radii button {
+  background: transparent;
+  color: var(--text, #e6ecf3);
+  border: 1px solid var(--border, rgba(255,255,255,0.14));
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-family: var(--font-head, 'Rajdhani', sans-serif);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.al-heat-radii button:hover { border-color: #4aa3ff; }
+.al-heat-radii button.active {
+  background: rgba(74,163,255,0.18);
+  border-color: #4aa3ff;
+  color: #cfe6ff;
+}
+
+/* Legend */
+.al-heat-legend { display: flex; flex-direction: column; gap: 4px; }
+.al-heat-legend-title {
+  font-family: var(--font-head, 'Rajdhani', sans-serif);
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text2, #b8c6d6);
+}
+.al-heat-legend-bar {
+  display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+.al-heat-legend-bar span { flex: 1; }
+.al-heat-legend-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--text3, #8ba2be);
+}
+
+/* Info card */
+.al-heat-info {
+  position: absolute;
+  bottom: 12px; left: 12px;
+  z-index: 900;
+  background: color-mix(in oklab, var(--surface, #0f1620) 90%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: var(--radius-lg, 14px);
+  padding: 12px 14px;
+  min-width: 220px;
+  max-width: 260px;
+  color: var(--text, #e6ecf3);
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.al-heat-info-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.al-heat-info-title {
+  font-family: var(--font-head, 'Rajdhani', sans-serif);
+  font-weight: 700; font-size: 13px;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text2, #b8c6d6);
+}
+.al-heat-info-close {
+  background: transparent; border: none; color: var(--text3, #8ba2be);
+  font-size: 20px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.al-heat-info-close:hover { color: #fff; }
+.al-heat-info-coords { font-size: 11px; color: var(--text3, #8ba2be); margin-bottom: 6px; font-family: ui-monospace, monospace; }
+.al-heat-info-value {
+  font-family: var(--font-head, 'Rajdhani', sans-serif);
+  font-size: 32px; font-weight: 700; line-height: 1;
+}
+.al-heat-info-unit { font-size: 12px; color: var(--text3, #8ba2be); font-weight: 500; margin-left: 4px; }
+.al-heat-info-label { font-weight: 600; margin-top: 2px; }
+.al-heat-info-sub { color: var(--text3, #8ba2be); margin-top: 6px; font-size: 11px; }
+.al-heat-info-empty { color: var(--text2, #b8c6d6); margin-top: 4px; font-style: italic; }
+.al-heat-info-stations {
+  list-style: none; padding: 6px 0 0; margin: 6px 0 0;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  max-height: 110px; overflow-y: auto;
+}
+.al-heat-info-stations li {
+  display: flex; justify-content: space-between;
+  padding: 3px 0; font-size: 11px;
+}
+.al-heat-info-stations li span:last-child { color: var(--text3, #8ba2be); font-family: ui-monospace, monospace; }
+
+/* Selection pin (pulsing crosshair) */
+.airlens-heatmap-selection-icon { pointer-events: none; }
+.al-heat-pin { position: relative; width: 26px; height: 26px; }
+.al-heat-pin-core {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #4aa3ff, 0 0 10px rgba(74,163,255,0.8);
+}
+.al-heat-pin-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid #4aa3ff;
+  opacity: .7;
+  animation: al-heat-pulse 1.6s ease-out infinite;
+}
+@keyframes al-heat-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.6); opacity: .9; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+
+/* Mobile: keep panel from overlapping the pollutant dropdown */
+@media (max-width: 640px) {
+  .al-heat-panel {
+    top: auto; bottom: 12px; right: 12px; left: 12px;
+    max-width: none; flex-direction: row; flex-wrap: wrap;
+    padding: 8px 10px; gap: 6px;
+  }
+  .al-heat-panel .al-heat-legend { flex: 1 1 100%; }
+  .al-heat-panel-tip { display: none; }
+  .al-heat-info {
+    left: 12px; right: 12px; max-width: none;
+    bottom: calc(12px + 92px);
+  }
+}

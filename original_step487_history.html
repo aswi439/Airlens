@@ -1,0 +1,135 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+html_path = r'c:\Users\ADMIN\Downloads\AirLens_Phase1_4\AirLens_Phase1_4\frontend\air_pollution.html'
+
+with open(html_path, 'r', encoding='utf-8', errors='replace') as f:
+    content = f.read()
+
+start_marker = '<div class="page" id="page-history">'
+end_marker = '<div class="page" id="page-health">'
+
+start_idx = content.find(start_marker)
+end_idx = content.find(end_marker)
+
+print(f"History indices: {start_idx}, {end_idx}")
+
+clean_history_html = """<div class="page" id="page-history">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Historical Analysis</div>
+          <div class="section-sub">Past 30 days pollution data and trend analysis</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Download CSV</button>
+      </div>
+
+      <div class="history-stats">
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#00e1ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+            <div class="h-title">MONTHLY AVG AQI</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-avg-val" style="color:#00e1ff;text-shadow:0 0 15px rgba(0,225,255,0.4)">77</div>
+              <div class="h-status" id="hist-avg-status" style="color:#ff9800">Moderate</div>
+              <div class="h-trend">vs last month <span id="hist-avg-trend" style="color:#00e5c8">↓ 13%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-avg" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#ff6b6b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+            <div class="h-title">PEAK AQI (THIS MONTH)</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-peak-val" style="color:#ff6b6b;text-shadow:0 0 15px rgba(255,107,107,0.4)">198</div>
+              <div class="h-status" id="hist-peak-status" style="color:#ff6b6b">Unhealthy</div>
+              <div class="h-trend">vs last month <span id="hist-peak-trend" style="color:#ff6b6b">↑ 8%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-peak" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#00e5c8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+            <div class="h-title">LOWEST AQI</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-low-val" style="color:#00e5c8;text-shadow:0 0 15px rgba(0,229,200,0.4)">58</div>
+              <div class="h-status" id="hist-low-status" style="color:#00e5c8">Good</div>
+              <div class="h-trend">vs last month <span id="hist-low-trend" style="color:#00e5c8">↓ 21%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-low" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#ffcc00"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            <div class="h-title">UNHEALTHY DAYS</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-unh-val" style="color:#ffcc00;text-shadow:0 0 15px rgba(255,204,0,0.4)">8</div>
+              <div class="h-status" style="color:#ffcc00">Days</div>
+              <div class="h-trend">vs last month <span id="hist-unh-trend" style="color:#ff6b6b">↑ 2</span></div>
+            </div>
+            <div class="h-graph h-gauge-wrap">
+              <canvas id="gauge-unhealthy" width="70" height="70"></canvas>
+              <div class="h-gauge-icon">⚠️</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="history-grid">
+        <div class="card f-card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 0;">
+            <span>📅 30-Day AQI History</span>
+            <select class="h-dropdown"><option>30 Days</option></select>
+          </div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="historyChart"></canvas></div>
+        </div>
+
+        <div class="card f-card h-dist-card">
+          <div class="card-title" style="padding:16px 24px 0;"><span>🧳</span> Monthly Distribution</div>
+          <div class="h-dist-layout">
+            <div class="chart-wrap" style="height:250px;width:250px;position:relative;">
+              <canvas id="distChart"></canvas>
+              <div class="h-dist-center">
+                <div class="h-dist-lbl">Total Days</div>
+                <div class="h-dist-val">30</div>
+              </div>
+            </div>
+            <div class="h-dist-legend" id="h-dist-legend">
+              <!-- JS will populate -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card f-card">
+          <div class="card-title" style="padding:16px 24px 0;"><span>🔥</span> Pollutant Heatmap (30 days)</div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="heatmapChart"></canvas></div>
+        </div>
+
+        <div class="card f-card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 0;">
+            <span>☁️ Weather vs AQI Correlation</span>
+            <select class="h-dropdown"><option>Temperature vs AQI</option></select>
+          </div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="corrChart"></canvas></div>
+        </div>
+      </div>
+    </div>\n\n    """
+
+if start_idx != -1 and end_idx != -1:
+    new_content = content[:start_idx] + clean_history_html + content[end_idx:]
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print("SUCCESSFULLY RESTORED CLEAN HISTORICAL ANALYSIS PAGE HTML!")

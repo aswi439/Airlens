@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="ChennAIR — Real-time AI-powered air quality forecasting for Chennai. Live AQI, 7-day predictions, health advisories and pollution maps.">
+  <meta property="og:title" content="ChennAIR AQI Forecasting System">
+  <meta property="og:description" content="Real-time AI-powered air quality monitoring for Chennai">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌬️</text></svg>">
+  <title>ChennAIR — AQI Forecasting System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="air-pollution.css?v=50">
+  <link rel="stylesheet" href="dashboard-redesign.css?v=3">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="air-pollution.js?v=44"></script>
+  <link rel="stylesheet" href="heatmap-layer.css?v=1">
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="heatmap-layer.js?v=1" defer></script>
+
+  <!-- AirLens Phase 1 – Industry Intelligence (additive; safe to remove) -->
+  <script>window.AIRLENS_BACKEND_URL = "http://localhost:8787";</script>
+  <script src="industry-layer.js?v=6"></script>
+  <style>
+    .weather-realism-box {
+      position: relative !important;
+      padding: 2px !important;
+      border-radius: 20px !important;
+      background: radial-gradient(circle at 80% -10%, #ffffff, #555555 30%, #181b1b 70%) !important;
+      border: none !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.6) !important;
+    }
+    .weather-realism-topglow {
+      position: absolute !important;
+      top: 0 !important;
+      right: 0 !important;
+      width: 65% !important;
+      height: 60% !important;
+      border-radius: 120px !important;
+      box-shadow: 0 0 45px rgba(255, 255, 255, 0.5) !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+      transition: all 0.3s ease-out !important;
+    }
+    .weather-realism-box:hover .weather-realism-topglow {
+      box-shadow: 0 0 65px rgba(255, 255, 255, 0.75) !important;
+    }
+    .weather-realism-blob {
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 80px !important;
+      height: 50% !important;
+      border-radius: 17px !important;
+      background: radial-gradient(circle 70px at 0% 100%, #3fff75, rgba(0, 255, 128, 0.5), transparent) !important;
+      box-shadow: -4px 9px 45px rgba(0, 255, 45, 0.6) !important;
+      pointer-events: none !important;
+      z-index: 1 !important;
+      transition: all 0.3s ease-out !important;
+    }
+    .weather-realism-box:hover .weather-realism-blob {
+      width: 120px !important;
+      box-shadow: -6px 10px 60px rgba(0, 255, 45, 0.85) !important;
+    }
+    .weather-realism-inner {
+      position: relative !important;
+      z-index: 10 !important;
+      border-radius: 18px !important;
+      padding: 24px !important;
+      color: #ffffff !important;
+      background: radial-gradient(circle at 80% -50%, #444444, #0f1111) !important;
+      transition: all 0.3s ease !important;
+      overflow: hidden !important;
+    }
+    .weather-realism-inner-glow {
+      position: absolute !important;
+      inset: 0 !important;
+      border-radius: 18px !important;
+      background: radial-gradient(circle 180px at 0% 100%, rgba(0, 225, 255, 0.14), rgba(0, 0, 255, 0.08), transparent) !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+    .weather-card-realism {
+      position: relative !important;
+      padding: 2px !important;
+      border-radius: 16px !important;
+      background: radial-gradient(circle at 80% -10%, #ffffff, #333333 40%, #181b1b) !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+      display: block !important;
+    }
+    .weather-card-realism:hover {
+      transform: translateY(-4px) scale(1.02) !important;
+    }
+    .weather-card-topglow {
+      position: absolute !important;
+      top: 0 !important;
+      right: 0 !important;
+      width: 65% !important;
+      height: 60% !important;
+      border-radius: 120px !important;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+      transition: all 0.3s ease-out !important;
+    }
+    .weather-card-realism:hover .weather-card-topglow {
+      box-shadow: 0 0 45px rgba(255, 255, 255, 0.7) !important;
+    }
+    .weather-card-blob {
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 50px !important;
+      height: 50% !important;
+      border-radius: 14px !important;
+      background: radial-gradient(circle 50px at 0% 100%, #3fff75, rgba(0, 255, 128, 0.45), transparent) !important;
+      box-shadow: -2px 9px 35px rgba(0, 255, 45, 0.5) !important;
+      pointer-events: none !important;
+      z-index: 1 !important;
+      transition: all 0.3s ease-out !important;
+    }
+    .weather-card-realism:hover .weather-card-blob {
+      width: 90px !important;
+      box-shadow: -4px 1px 50px rgba(0, 255, 45, 0.75) !important;
+    }
+    .weather-card-inner {
+      position: relative !important;
+      z-index: 10 !important;
+      border-radius: 14px !important;
+      padding: 16px !important;
+      color: #ffffff !important;
+      background: radial-gradient(circle at 80% -50%, #555555, #0f1111) !important;
+      height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      transition: all 0.3s ease !important;
+    }
+    .weather-card-inner-glow {
+      position: absolute !important;
+      inset: 0 !important;
+      border-radius: 14px !important;
+      background: radial-gradient(circle 60px at 0% 100%, rgba(0, 225, 255, 0.14), rgba(0, 0, 255, 0.08), transparent) !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- GLOBAL MENU TOGGLE — sidebar is hidden until this is clicked -->
+  <button class="floating-menu-btn" id="floatingMenuBtn" aria-label="Open menu" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="sidebar-scrim" id="sidebarScrim" onclick="toggleSidebar(false)"></div>
+
+
+
+  <!-- BACKGROUNDS (Removed as per request) -->
+
+  <!-- BACKGROUNDS -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
+  <canvas class="bg-particles" id="bgParticles"></canvas>
+
+
+    <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo" onclick="window.location.href='intro.html'" style="cursor:pointer;" title="Go to Intro Page">
+      <div class="logo-text">
+        <div class="logo-dot"></div>
+        ChennAIR
+      </div>
+      <div class="logo-sub">AQI Forecasting System v3.0</div>
+    </div>
+    <div class="nav-items">
+      <div class="nav-item" onclick="window.location.href='intro.html'">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">⬅️</span> Back to Intro
+        </div>
+      </div>
+      <div class="nav-item active" onclick="showPage('home',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🏠</span> Dashboard
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('forecast',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">📈</span> Forecast
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('map',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🗺️</span> Map View
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('viz3d',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🧊</span> 3D Visualization
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('ai',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🤖</span> AI Prediction
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('aichat',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">💬</span> AI Health Advisor
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('history',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">📊</span> Historical Data
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('health',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🏥</span> Health Advisory
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('exposure',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">📍</span> Exposure Tracker
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('alerts',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🔔</span> Alerts
+          <span class="nav-badge" id="alertBadge">3</span>
+        </div>
+      </div>
+      <div class="nav-item" onclick="showPage('data',this)">
+        <span class="nav-arrow-icon">➔</span>
+        <div class="nav-item-text">
+          <span class="nav-icon">🌐</span> Data Sources
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="aqi-mini">
+        <div class="aqi-mini-label">Current AQI · Chennai</div>
+        <div class="aqi-mini-val" id="sidebar-aqi">—</div>
+        <div class="aqi-mini-status" id="sidebar-status" style="color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-header">
+      Alerts & Notifications
+      <button onclick="toggleNotifPanel()"
+        style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;">×</button>
+    </div>
+    <div class="notif-item">
+      <h4>🔴 AQI Spike Detected</h4>
+      <p>PM2.5 levels exceeded 150 µg/m³ in a nearby area</p>
+      <time>2 min ago</time>
+    </div>
+    <div class="notif-item">
+      <h4>🟡 High NO₂ Levels</h4>
+      <p>Nitrogen dioxide at 78 µg/m³ near Ambattur Industrial</p>
+      <time>25 min ago</time>
+    </div>
+    <div class="notif-item">
+      <h4>🔵 Forecast Updated</h4>
+      <p>AI model updated 7-day forecast with 93.2% confidence</p>
+      <time>1 hour ago</time>
+    </div>
+    <div class="notif-item">
+      <h4>🟢 Air Quality Improving</h4>
+      <p>Marina Beach area showing improvement — AQI dropped to 85</p>
+      <time>3 hours ago</time>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ===== HOME PAGE ===== -->
+    <div class="page active" id="page-home">
+      <!-- ===== DASHBOARD HEADER (redesigned) ===== -->
+      <div class="dash-hero">
+        <div class="dash-hero-left">
+          <button class="menu-btn dash-menu-btn" onclick="toggleSidebar()">☰</button>
+          <div class="dash-greeting" id="dashGreeting">Good Evening, User <span class="wave">👋</span></div>
+          <div class="dash-sub">Here's your environment overview</div>
+        </div>
+        <div class="dash-hero-controls">
+          <button class="ctrl-chip ctrl-primary" onclick="downloadReport()">
+            <span class="ctrl-icon">📄</span>
+            <span class="ctrl-body">
+              <span class="ctrl-title">Download AQI Report</span>
+              <span class="ctrl-desc">Get detailed air quality report</span>
+            </span>
+            <span class="ctrl-arrow">⬇</span>
+          </button>
+          <div class="ctrl-chip">
+            <span class="ctrl-icon">📅</span>
+            <span class="ctrl-body">
+              <span class="ctrl-title" id="dashDate">—</span>
+              <span class="ctrl-desc" id="dashDay">—</span>
+            </span>
+          </div>
+          <div class="ctrl-chip">
+            <span class="ctrl-icon">🕒</span>
+            <span class="ctrl-body">
+              <span class="ctrl-title" id="dashClock">—</span>
+              <span class="ctrl-desc">Local Time</span>
+            </span>
+          </div>
+          <button class="ctrl-icon-btn" onclick="toggleTheme()" title="Toggle theme">☾</button>
+          <button class="ctrl-icon-btn ctrl-bell" onclick="toggleNotifPanel()" title="Notifications">
+            🔔<span class="ctrl-badge">2</span>
+          </button>
+          <button class="ctrl-avatar" onclick="document.getElementById('loginModal').classList.add('open')">U</button>
+        </div>
+      </div>
+
+      <!-- Tab switcher OUTSIDE the box -->
+      <div class="ov-tabs" style="margin-bottom:14px; margin-top:10px;">
+        <button class="ov-tab active" onclick="switchOvTab('aqi',this)">🌿 AQI</button>
+        <button class="ov-tab" onclick="switchOvTab('weather',this)">☁ Weather</button>
+      </div>
+
+      <!-- ===== OVERVIEW TABBED CARD (AQI / Weather Wrapper) ===== -->
+      <div class="overview-card" id="overviewCard" data-aqi-state="good" style="border:none; background:transparent; padding:0; box-shadow:none;">
+        
+        <!-- ===== AQI PANEL (Realism Shiny Borders Box) ===== -->
+        <div class="ov-panel active realism-box" data-panel="aqi">
+          <!-- Top-right ambient shine glow -->
+          
+          <!-- Bottom-left green blob glow -->
+          
+
+          <div class="realism-inner">
+            
+
+            <div class="ov-panel-head">
+              <div class="ov-title"><span class="ov-title-ico">🌿</span> AIR QUALITY INDEX</div>
+              <div class="ov-meta">Today, <span id="ovTime">10:30 AM</span> <span class="ov-menu">⋮</span></div>
+            </div>
+
+            <!-- ===== AQI HERO v3 — gauge centered, 4 stat boxes each side ===== -->
+            <div class="aqi-hero-v3">
+
+              <!-- LEFT: 4 dynamic boxes -->
+              <div class="ahv3-side ahv3-left">
+                <div class="ahv3-box realism-card">
+                  
+                  
+                  <div class="realism-card-inner" style="display:flex; align-items:flex-start; gap:10px; width:100%;">
+                    
+                    <div class="ahv3-ico">📈</div>
+                    <div class="ahv3-body">
+                      <div class="ahv3-label">AQI Trend</div>
+                      <div class="ahv3-row">
+                        <span class="ahv3-strong" id="aqiTrendStatus">Improving</span>
+                        <span class="ahv3-arrow" id="aqiTrendArrow">&#8595;</span>
+                      </div>
+                      <div class="ahv3-sub">vs yesterday</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box realism-card" data-p="pm10">
+                  
+                  
+                  <div class="realism-card-inner" style="display:flex; align-items:flex-start; gap:10px; width:100%;">
+                    
+                    <div class="ahv3-ico">💧</div>
+                    <div class="ahv3-body">
+                      <div class="ahv3-label">PM10</div>
+                      <div class="ahv3-row"><span class="ahv3-val" id="pm10Val">—</span><span class="ahv3-unit">µg/m³</span></div>
+                      <div class="ahv3-sub ahv3-status" id="pm10Status">Good</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box realism-card" data-p="pm25">
+                  
+                  
+                  <div class="realism-card-inner" style="display:flex; align-items:flex-start; gap:10px; width:100%;">
+                    
+                    <div class="ahv3-ico">🌫️</div>
+                    <div class="ahv3-body">
+                      <div class="ahv3-label">PM2.5</div>
+                      <div class="ahv3-row"><span class="ahv3-val" id="pm25Val">—</span><span class="ahv3-unit">µg/m³</span></div>
+                      <div class="ahv3-sub ahv3-status" id="pm25Status">Good</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box realism-card" data-p="co">
+                  
+                  
+                  <div class="realism-card-inner" style="display:flex; align-items:flex-start; gap:10px; width:100%;">
+                    
+                    <div class="ahv3-ico ahv3-ico-text">CO</div>
+                    <div class="ahv3-body">
+                      <div class="ahv3-label">CO</div>
+                      <div class="ahv3-row"><span class="ahv3-val" id="heroCoVal">—</span><span class="ahv3-unit">ppm</span></div>
+                      <div class="ahv3-sub ahv3-status" id="heroCoStatus">Good</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CENTER: AQI gauge -->
+              <div class="ahv3-center">
+                <div class="gaugev3" id="gaugeV3">
+                  <svg class="gaugev3-svg" viewBox="0 0 300 190" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="gv3Arc" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0"    stop-color="#00e676"/>
+                        <stop offset="0.22" stop-color="#a8e600"/>
+                        <stop offset="0.42" stop-color="#ffeb3b"/>
+                        <stop offset="0.62" stop-color="#ff9800"/>
+                        <stop offset="0.82" stop-color="#f44336"/>
+                        <stop offset="1"    stop-color="#c026d3"/>
+                      </linearGradient>
+                      <filter id="gv3Blur" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6"/>
+                      </filter>
+                    </defs>
+                    <path class="gv3-arc-glow" d="M 30 165 A 120 120 0 0 1 270 165" fill="none"
+                          stroke="url(#gv3Arc)" stroke-width="16" stroke-linecap="round" filter="url(#gv3Blur)" opacity=".45"/>
+                    <path class="gv3-arc" d="M 30 165 A 120 120 0 0 1 270 165" fill="none"
+                          stroke="url(#gv3Arc)" stroke-width="15" stroke-linecap="round"/>
+                    <g class="gv3-ticks" id="gv3Ticks"></g>
+                    <g class="gv3-needle" id="gv3Needle" transform="rotate(-90 150 165)">
+                      <path d="M150 60 L144 163 L156 163 Z" fill="#f4f8ff"/>
+                      <circle cx="150" cy="165" r="7" fill="#f4f8ff"/>
+                      <circle cx="150" cy="165" r="3" fill="#0c1220"/>
+                    </g>
+                    <text class="gv3-scale" x="24"  y="182" text-anchor="middle">0</text>
+                    <text class="gv3-scale" x="286" y="182" text-anchor="middle">300+</text>
+                  </svg>
+                  <div class="gaugev3-readout">
+                    <div class="gv3-num" id="gaugeNum" style="color:var(--good)">—</div>
+                    <div class="gv3-status" id="aqiBadge" style="color:var(--good); background:transparent !important; border:none !important;">GOOD</div>
+                  </div>
+                </div>
+                <div class="gv3-desc" id="aqiDesc">Air quality is satisfactory and poses little or no risk.</div>
+                <div class="aqi-status-pill" id="aqiStatusPill" style="align-self:center !important; margin:6px auto 0 !important; display:inline-flex !important;">
+                  <span class="pill-leaf">🌿</span>
+                  <span id="aqiPillText">Air is fresh and Healthy</span>
+                </div>
+              </div>
+
+              <!-- RIGHT: 4 dynamic boxes -->
+              <div class="ahv3-side ahv3-right">
+                <div class="ahv3-box ahv3-stat realism-card">
+                  
+                  
+                  <div class="realism-card-inner ahv3-stat" style="display:flex; flex-direction:column; justify-content:center; width:100%;">
+                    
+                    <div class="ahv3-label">MIN AQI (TODAY)</div>
+                    <div class="ahv3-big" id="minAqiToday">—<span class="asr-dot" style="background:var(--good)"></span></div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box ahv3-stat realism-card">
+                  
+                  
+                  <div class="realism-card-inner ahv3-stat" style="display:flex; flex-direction:column; justify-content:center; width:100%;">
+                    
+                    <div class="ahv3-label">MAX AQI (TODAY)</div>
+                    <div class="ahv3-big" id="maxAqiToday">—<span class="asr-dot" style="background:var(--moderate)"></span></div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box ahv3-stat realism-card">
+                  
+                  
+                  <div class="realism-card-inner ahv3-stat" style="display:flex; flex-direction:column; justify-content:center; width:100%;">
+                    
+                    <div class="ahv3-label">24H TREND</div>
+                    <div class="ahv3-big" id="stat24hV2" style="color:#ffeb3b">—</div>
+                    <div class="ahv3-sub" id="stat24hLabelV2">vs yesterday</div>
+                  </div>
+                </div>
+
+                <div class="ahv3-box ahv3-stat realism-card">
+                  
+                  
+                  <div class="realism-card-inner ahv3-stat" style="display:flex; flex-direction:column; justify-content:center; width:100%;">
+                    
+                    <div class="ahv3-label">PREDICTION ACC.</div>
+                    <div class="ahv3-big" style="color:var(--accent)">95.1%</div>
+                    <div class="ahv3-sub">Ensemble Model</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- gradient bar kept hidden — preserves aqiPointer JS -->
+            <div class="aqi-gradient-bar" style="display:none;">
+              <div class="agb-track"><div id="aqiPointer" class="agb-pointer"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== WEATHER PANEL (Shiny Borders / Realism Button Design) ===== -->
+        <div class="ov-panel weather-realism-box" data-panel="weather">
+          <!-- Glow behind top-right -->
+          <div class="weather-realism-topglow"></div>
+          <!-- Bottom-left green blob -->
+          <div class="weather-realism-blob"></div>
+
+          <div class="weather-realism-inner">
+            <div class="weather-realism-inner-glow"></div>
+
+            <div class="ov-panel-head">
+              <div class="ov-title"><span class="ov-title-ico">☁</span> METEOROLOGICAL DATA</div>
+              <div class="ov-meta">Live · IMD</div>
+            </div>
+            <div class="weather-hero-grid">
+              <div class="wh-left weather-card-realism">
+                <div class="weather-card-topglow"></div>
+                <div class="weather-card-blob"></div>
+                <div class="weather-card-inner" style="padding:24px;">
+                  <div class="weather-card-inner-glow"></div>
+                  <div id="weatherIcon" style="font-size:96px;line-height:1;">🌤</div>
+                  <div id="temperature" style="font-family:var(--font-head);font-size:72px;font-weight:700;line-height:1;color:var(--text);">—</div>
+                  <div id="weatherText" style="font-size:14px;color:var(--text2);margin-top:6px;">Loading weather data…</div>
+                </div>
+              </div>
+              <div class="wh-right">
+                <div class="weather-item weather-card-realism">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <div class="w-icon">💧</div>
+                    <div class="w-val" id="humidity">—</div>
+                    <div class="w-label">Humidity</div>
+                  </div>
+                </div>
+                <div class="weather-item weather-card-realism">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <div class="w-icon">💨</div>
+                    <div class="w-val" id="wind">—</div>
+                    <div class="w-label">Wind</div>
+                  </div>
+                </div>
+                <div class="weather-item weather-card-realism">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <div class="w-icon">👁</div>
+                    <div class="w-val" id="visibility">—</div>
+                    <div class="w-label">Visibility</div>
+                  </div>
+                </div>
+                <div class="weather-item weather-card-realism">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <div class="w-icon">🔽</div>
+                    <div class="w-val" id="pressure">—</div>
+                    <div class="w-label">Pressure</div>
+                  </div>
+                </div>
+                <div class="weather-item weather-card-realism">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <div class="w-icon">🧭</div>
+                    <div class="w-val"><span id="windDirText">—</span></div>
+                    <div class="w-label">Wind Direction</div>
+                  </div>
+                </div>
+                <div class="weather-item weather-card-realism" id="windRose">
+                  <div class="weather-card-topglow"></div>
+                  <div class="weather-card-blob"></div>
+                  <div class="weather-card-inner">
+                    <div class="weather-card-inner-glow"></div>
+                    <svg width="60" height="60" viewBox="0 0 60 60" style="margin:0 auto;">
+                      <circle cx="30" cy="30" r="28" fill="none" stroke="var(--border2)" stroke-width="1" />
+                      <text x="30" y="13" text-anchor="middle" fill="var(--text3)" font-size="8">N</text>
+                      <text x="30" y="52" text-anchor="middle" fill="var(--text3)" font-size="8">S</text>
+                      <text x="52" y="33" text-anchor="middle" fill="var(--text3)" font-size="8">E</text>
+                      <text x="8" y="33" text-anchor="middle" fill="var(--text3)" font-size="8">W</text>
+                      <line id="windArrow" x1="30" y1="30" x2="22" y2="44" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)" />
+                      <defs>
+                        <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                          <path d="M0,0 L0,6 L6,3 z" fill="var(--accent)" />
+                        </marker>
+                      </defs>
+                      <circle cx="30" cy="30" r="3" fill="var(--accent)" />
+                    </svg>
+                    <div class="w-label">Compass</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== POLLUTANT CARD STACK (3D fan carousel) ===== -->
+      <section class="cardstack-section" id="pollutantStackSection">
+        <div class="cardstack-head">
+          <div class="cardstack-title"><span>🧬</span> POLLUTANT SPOTLIGHT</div>
+          <div class="cardstack-hint">Drag, click a card or use ← → keys</div>
+        </div>
+        <div class="cardstack" id="pollutantStack" tabindex="0" aria-label="Pollutant cards">
+          <button class="cs-nav cs-prev" id="csPrev" aria-label="Previous pollutant">‹</button>
+          <div class="cs-stage"><div class="cs-plane" id="csPlane"></div></div>
+          <button class="cs-nav cs-next" id="csNext" aria-label="Next pollutant">›</button>
+          <div class="cs-dots" id="csDots"></div>
+        </div>
+      </section>
+
+      <!-- ===== REALISM SHINY BORDERS AQI MAP BOX (EXPANDABLE WITH 3D MOTION) ===== -->
+      <div class="card pmrow-map-card realism-box" id="mapExpandCard" onclick="handleMapCardClick(event)" onmousemove="handleMapTilt(event)" onmouseleave="resetMapTilt()" style="display:flex; flex-direction:column; width:100%; min-width:0; margin-top:18px;">
+        <!-- Top-right ambient shine glow -->
+        
+        <!-- Bottom-left green blob glow -->
+        
+
+        <div class="realism-inner">
+          
+
+          <div class="pmrow-head">
+            <div class="pmrow-title"><span class="pmrow-ico">📍</span> AQI MAP</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <a class="pmrow-link" id="expandMapBtn" onclick="toggleMapExpand()">
+                <span id="expandMapIcon" style="display:inline-block; transition:transform 0.3s ease;">⤢</span>
+                <span id="expandMapText">Expand Map</span>
+              </a>
+              <a class="pmrow-link" onclick="showPage('map', document.querySelector('.nav-item[onclick*=map]'))">Full Map →</a>
+            </div>
+          </div>
+          <div id="dashLeafletMap" class="pmrow-map" style="height:320px; border-radius:14px; margin-bottom:0;"></div>
+          <div class="map-expand-hint" id="mapExpandHint">Click box to expand map</div>
+          <div class="pmrow-legend" style="margin-top:16px; margin-bottom:18px; display:grid; grid-template-columns: repeat(6, 1fr); gap:12px;">
+            <span><i style="background:#00e676"></i>0-50<br><b>Good</b></span>
+            <span><i style="background:#ffeb3b"></i>51-100<br><b>Moderate</b></span>
+            <span><i style="background:#ff9800"></i>101-150<br><b>Unhealthy for Sensitive Groups</b></span>
+            <span><i style="background:#f44336"></i>151-200<br><b>Unhealthy</b></span>
+            <span><i style="background:#9c27b0"></i>201-300<br><b>Very Unhealthy</b></span>
+            <span><i style="background:#7b1fa2"></i>301+<br><b>Hazardous</b></span>
+          </div>
+
+          <!-- 4 REALISM STAT CARDS INSIDE THE MAP BOX -->
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:18px;">
+            <!-- Card 1 -->
+            <div class="realism-card">
+              
+              
+              <div class="realism-card-inner">
+                
+                <div style="font-size:10px;color:var(--text3,#8ea0b0);text-transform:uppercase;letter-spacing:1px;">AI Forecast Accuracy</div>
+                <div style="font-family:var(--font-head);font-size:26px;font-weight:700;color:var(--accent2,#00e1ff);margin:4px 0;">95.1%</div>
+                <div style="font-size:12px;color:var(--text2,#c8d3de);">Ensemble Model</div>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="realism-card">
+              
+              
+              <div class="realism-card-inner">
+                
+                <div style="font-size:10px;color:var(--text3,#8ea0b0);text-transform:uppercase;letter-spacing:1px;">24h Change</div>
+                <div id="stat24h" style="font-family:var(--font-head);font-size:26px;font-weight:700;color:#888;margin:4px 0;">—</div>
+                <div id="stat24hLabel" style="font-size:12px;color:var(--text2,#c8d3de);">Loading…</div>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="realism-card">
+              
+              
+              <div class="realism-card-inner">
+                
+                <div style="font-size:10px;color:var(--text3,#8ea0b0);text-transform:uppercase;letter-spacing:1px;">Worst Area Today</div>
+                <div id="statWorstName" style="font-family:var(--font-head);font-size:18px;font-weight:700;color:#f44336;margin:4px 0;">—</div>
+                <div id="statWorstDesc" style="font-size:12px;color:var(--text2,#c8d3de);">Loading…</div>
+              </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="realism-card">
+              
+              
+              <div class="realism-card-inner">
+                
+                <div style="font-size:10px;color:var(--text3,#8ea0b0);text-transform:uppercase;letter-spacing:1px;">Best Area Today</div>
+                <div id="statBestName" style="font-family:var(--font-head);font-size:18px;font-weight:700;color:#00e676;margin:4px 0;">—</div>
+                <div id="statBestDesc" style="font-size:12px;color:var(--text2,#c8d3de);">Loading…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== BOTTOM ROW (STACKED FULL WIDTH - 24-HOUR AQI TREND & HEALTH ADVISORY) ===== -->
+      <div class="home-bottom" style="display:flex; flex-direction:column; gap:18px; margin-top:18px; width:100%;">
+        
+        <!-- ===== 24-HOUR AQI TREND (Full Width Realism Shiny Borders Box) ===== -->
+        <div class="card realism-box" style="display:flex; flex-direction:column; width:100%; min-width:0;">
+          <!-- Top-right ambient shine glow -->
+          
+          <!-- Bottom-left green blob glow -->
+          
+
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="margin-bottom:16px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;">
+              <span style="color:#38b4ff;">📉</span> 24-Hour AQI Trend
+            </div>
+            <div class="chart-wrap" style="height:260px; width:100%;">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== HEALTH ADVISORY (Full Width Realism Shiny Borders Box) ===== -->
+        <div class="card realism-box" style="display:flex; flex-direction:column; width:100%; min-width:0;">
+          <!-- Top-right ambient shine glow -->
+          
+          <!-- Bottom-left green blob glow -->
+          
+
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="margin-bottom:16px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;">
+              <span style="color:#00e676;">🏥</span> Health Advisory
+            </div>
+
+            <div class="advisory-list" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; width:100%;">
+              
+              <!-- Item 1 -->
+              <div class="advisory-item realism-card">
+                
+                
+                <div class="realism-card-inner" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; width:100%;">
+                  
+                  <div class="advisory-icon" style="font-size:28px;">😷</div>
+                  <div class="advisory-text" style="flex:1;">
+                    <h4 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">Wear N95/KN95 Mask</h4>
+                    <p style="font-size:12px; color:var(--text2, #8ea0b0); line-height:1.4;">Recommended for outdoor activities exceeding 30 minutes</p>
+                  </div>
+                  <div class="advisory-level" style="background:rgba(255,152,0,0.2); color:#ff9800; padding:4px 10px; border-radius:8px; font-weight:700; font-size:11px; letter-spacing:0.5px;">HIGH</div>
+                </div>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="advisory-item realism-card">
+                
+                
+                <div class="realism-card-inner" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; width:100%;">
+                  
+                  <div class="advisory-icon" style="font-size:28px;">🏃</div>
+                  <div class="advisory-text" style="flex:1;">
+                    <h4 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">Limit Outdoor Exercise</h4>
+                    <p style="font-size:12px; color:var(--text2, #8ea0b0); line-height:1.4;">Exercise indoors or reduce intensity if outside</p>
+                  </div>
+                  <div class="advisory-level" style="background:rgba(255,152,0,0.2); color:#ff9800; padding:4px 10px; border-radius:8px; font-weight:700; font-size:11px; letter-spacing:0.5px;">MED</div>
+                </div>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="advisory-item realism-card">
+                
+                
+                <div class="realism-card-inner" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; width:100%;">
+                  
+                  <div class="advisory-icon" style="font-size:28px;">🏠</div>
+                  <div class="advisory-text" style="flex:1;">
+                    <h4 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">Keep Windows Closed</h4>
+                    <p style="font-size:12px; color:var(--text2, #8ea0b0); line-height:1.4;">Use air purifiers if available; avoid burning</p>
+                  </div>
+                  <div class="advisory-level" style="background:rgba(56,180,255,0.2); color:var(--accent, #00e1ff); padding:4px 10px; border-radius:8px; font-weight:700; font-size:11px; letter-spacing:0.5px;">INFO</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    
+
+    <!-- ===== FORECAST PAGE ===== -->
+</div>
+    <div class="page" id="page-forecast">
+      <div class="section-header">
+        <div>
+          <div class="section-title">7-Day Pollution Forecast</div>
+          <div class="section-sub">AI-powered predictions using ensemble LSTM + XGBoost model</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Export Data</button>
+      </div>
+
+      <!-- 7 Daily Forecast Cards Stack -->
+      <div class="days-forecast" id="daysForecast" style="margin-top:16px;"></div>
+
+      <!-- Main AQI Forecast Chart (Realism Shiny Borders Box) -->
+      <div class="forecast-full" style="margin-top:18px;">
+        <div class="card realism-box" style="display:flex; flex-direction:column; width:100%;">
+          
+          
+
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="display:flex; align-items:center; gap:8px; margin-bottom:14px; font-weight:700; font-size:15px;">
+              <span>📈</span> AQI Forecast Timeline
+              <div style="margin-left:auto; display:flex; gap:8px;">
+                <button class="topbar-btn" onclick="updateForecastChart('aqi')" id="btn-aqi" style="padding:5px 12px; font-size:12px;">AQI</button>
+                <button class="topbar-btn" onclick="updateForecastChart('pm25')" id="btn-pm25" style="padding:5px 12px; font-size:12px;">PM2.5</button>
+                <button class="topbar-btn" onclick="updateForecastChart('pm10')" id="btn-pm10" style="padding:5px 12px; font-size:12px;">PM10</button>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:260px; width:100%;">
+              <canvas id="forecastMainChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 Individual Pollutant Forecast Cards (Realism Shiny Borders Cards in 2-Column Grid) -->
+      <div class="forecast-grid" style="margin-top:18px;">
+        
+        <!-- PM2.5 -->
+        <div class="card f-card realism-box" id="fc-pm25">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(56,180,255);background:rgba(56,180,255,0.1)">🔬</div>
+                <div class="f-titles"><div class="f-main-title">PM2.5 Forecast</div><div class="f-sub-title">Fine Particulate Matter</div></div>
+              </div>
+              <div class="f-pill" id="fp-pm25"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-pm25">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-pm25"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-pm25">--</div><div class="f-peak-val" id="fpv-pm25">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="pm25Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-pm25">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PM10 -->
+        <div class="card f-card realism-box" id="fc-pm10">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(0,229,200);background:rgba(0,229,200,0.1)">💨</div>
+                <div class="f-titles"><div class="f-main-title">PM10 Forecast</div><div class="f-sub-title">Coarse Particulate Matter</div></div>
+              </div>
+              <div class="f-pill" id="fp-pm10"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-pm10">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-pm10"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-pm10">--</div><div class="f-peak-val" id="fpv-pm10">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="pm10Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-pm10">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NO2 -->
+        <div class="card f-card realism-box" id="fc-no2">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(255,107,107);background:rgba(255,107,107,0.1)">🏭</div>
+                <div class="f-titles"><div class="f-main-title">NO₂ Forecast</div><div class="f-sub-title">Nitrogen Dioxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-no2"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-no2">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-no2"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-no2">--</div><div class="f-peak-val" id="fpv-no2">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="no2Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-no2">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- O3 -->
+        <div class="card f-card realism-box" id="fc-o3">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(255,235,59);background:rgba(255,235,59,0.1)">☁️</div>
+                <div class="f-titles"><div class="f-main-title">O₃ Forecast</div><div class="f-sub-title">Ozone</div></div>
+              </div>
+              <div class="f-pill" id="fp-o3"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-o3">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-o3"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-o3">--</div><div class="f-peak-val" id="fpv-o3">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="o3Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-o3">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SO2 -->
+        <div class="card f-card realism-box" id="fc-so2">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(255,152,0);background:rgba(255,152,0,0.1)">🌋</div>
+                <div class="f-titles"><div class="f-main-title">SO₂ Forecast</div><div class="f-sub-title">Sulfur Dioxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-so2"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-so2">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-so2"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-so2">--</div><div class="f-peak-val" id="fpv-so2">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="so2Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-so2">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CO -->
+        <div class="card f-card realism-box" id="fc-co">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            
+            <div class="f-header">
+              <div class="f-title-left">
+                <div class="f-icon-wrap" style="color:rgb(156,39,176);background:rgba(156,39,176,0.1)">🔥</div>
+                <div class="f-titles"><div class="f-main-title">CO Forecast</div><div class="f-sub-title">Carbon Monoxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-co"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-co">--</span><span class="f-unit"> mg/m³</span></div></div>
+              <div class="f-trend" id="ft-co"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-co">--</div><div class="f-peak-val" id="fpv-co">-- mg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="coChart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-co">--</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- AI Forecast Accuracy Bar -->
+      <div class="f-accuracy-bar realism-box" style="margin-top:18px; border-radius:14px;">
+        
+        
+        <div class="realism-inner" style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; width:100%;">
+          
+          <div class="f-acc-left" style="font-size:13px; color:var(--text2);">✨ Forecasts are generated using AI models trained on satellite data, weather forecasts and ground station measurements.</div>
+          <div class="f-acc-right" style="display:flex; align-items:center; gap:10px;">
+            <span style="color:#8ba2be; font-size:12px;">Prediction Accuracy</span>
+            <div class="f-acc-badge" style="background:#00e676; color:#0c1220; font-weight:700; padding:2px 8px; border-radius:6px; font-size:12px;">95%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="page" id="page-map">
+      <div class="section-header" style="margin-bottom:14px;">
+        <div>
+          <div class="section-title">Live Pollution Map</div>
+          <div class="section-sub">Real Leaflet map · Station markers · AQI heatmap overlay · Click markers for details</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="pollSelect" onchange="updateLeafletMap(this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body);outline:none;cursor:pointer;">
+            <option value="aqi">AQI (Combined)</option>
+            <option value="pm25">PM2.5</option>
+            <option value="pm10">PM10</option>
+            <option value="no2">NO₂</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Realism Shiny Borders Container for Leaflet Map -->
+      <div class="realism-box" style="margin-top:10px; width:100%;">
+        
+        
+        <div class="realism-inner" style="padding:10px; width:100%;">
+          
+          <div id="leaflet-map" style="height:500px; border-radius:var(--radius-lg); overflow:hidden;"></div>
+        </div>
+      </div>
+
+      <!-- AQI Color Severity Legend -->
+      <div style="display:flex;align-items:center;gap:24px;margin-top:14px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">AQI:</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:50%;background:#00e676;display:inline-block;"></span>Good</span>
+            <span style="font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:50%;background:#ffeb3b;display:inline-block;"></span>Moderate</span>
+            <span style="font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:50%;background:#ff9800;display:inline-block;"></span>Unhealthy-S</span>
+            <span style="font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:50%;background:#f44336;display:inline-block;"></span>Unhealthy</span>
+            <span style="font-size:12px;display:flex;align-items:center;gap:5px;color:var(--text2);"><span style="width:12px;height:12px;border-radius:50%;background:#9c27b0;display:inline-block;"></span>Hazardous</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom 3 Cards in 3-Column Grid with Realism Shiny Borders -->
+      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:20px;margin-top:20px;">
+        
+        <!-- Area AQI Rankings -->
+        <div class="card mv-card mv-theme-purple realism-box" style="display:flex;flex-direction:column;">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%; height:100%; display:flex; flex-direction:column;">
+            
+            <div class="mv-wave"></div>
+            <div class="card-title" style="margin-bottom:12px;position:relative;z-index:2;"><span>🏆</span> Area AQI Rankings</div>
+            <div id="areaRankings" style="position:relative;z-index:2;flex:1;"></div>
+            <div class="mv-footer mv-footer-purple">
+              <a href="#">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                View Full Rankings →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Area Comparison -->
+        <div class="card mv-card mv-theme-blue realism-box" style="display:flex;flex-direction:column;">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%; height:100%; display:flex; flex-direction:column;">
+            
+            <div class="card-title mv-header">
+              <div style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#38b4ff"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg> Area Comparison</div>
+              <select class="mv-dropdown"><option>AQI</option></select>
+            </div>
+            <div class="chart-wrap" style="height:250px;margin-top:10px;"><canvas id="areaChart"></canvas></div>
+            <div class="mv-footer mv-footer-blue" style="margin-top:auto;">
+              <div class="mv-info">
+                <div class="mv-info-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+                Higher AQI indicates greater air pollution
+                <div class="mv-info-i">i</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pollution Sources -->
+        <div class="card mv-card mv-theme-green realism-box" style="display:flex;flex-direction:column;">
+          
+          
+          <div class="realism-inner" style="padding:18px; width:100%; height:100%; display:flex; flex-direction:column;">
+            
+            <div class="card-title mv-header">
+              <div style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#00e5c8"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg> Pollution Sources</div>
+              <select class="mv-dropdown"><option>This Week</option></select>
+            </div>
+            <div class="chart-wrap" style="height:190px;margin-top:10px;position:relative;"><canvas id="sourcesChart"></canvas></div>
+            <div id="customSourcesLegend" class="mv-sources-grid">
+               <!-- JS will populate -->
+            </div>
+            <div class="mv-footer mv-footer-green" style="margin-top:auto;">
+              <a href="#">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                View Source Details →
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="page" id="page-viz3d">
+      <div class="section-header">
+        <div>
+          <div class="section-title">3D AQI Cityscape</div>
+          <div class="section-sub">Three.js 3D bar chart — bar height = AQI level · Drag to rotate · Scroll to zoom</div>
+        </div>
+        <div class="viz3d-controls">
+          <button class="topbar-btn" onclick="reset3DCamera()">⌖ Reset View</button>
+          <button class="topbar-btn" onclick="toggle3DAnimation()" id="anim3dBtn">⏸ Pause</button>
+        </div>
+      </div>
+
+      <!-- Realism Shiny Borders Box Container for 3D Canvas -->
+      <div class="realism-box" style="margin-top:16px; width:100%;">
+        
+        
+        <div class="realism-inner" style="padding:16px; width:100%; position:relative;">
+          
+          <canvas id="viz3d-canvas" style="width:100%; height:480px; border-radius:var(--radius-lg); display:block;"></canvas>
+
+          <div class="viz3d-legend" style="margin-top:14px;">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-right:8px;">AQI Levels:</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#00e676;"></div>Good (0–50)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#ffeb3b;"></div>Moderate (51–100)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#ff9800;"></div>Unhealthy-S (101–150)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f44336;"></div>Unhealthy (151–200)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#9c27b0;"></div>Hazardous (200+)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Stats Cards in Grid with Realism Shiny Borders -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px;" id="viz3dStats"></div>
+    </div>
+
+    <div class="page" id="page-ai">
+      <div class="section-header">
+        <div>
+          <div class="section-title">AI Prediction Module</div>
+          <div class="section-sub">Machine learning models for air quality forecasting</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Model Report</button>
+      </div>
+
+      <div class="ai-grid">
+        <div>
+          <div class="card realism-box" style="margin-bottom:16px;">
+            
+            
+            <div class="realism-inner" style="padding:20px; width:100%;">
+              
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:600;">SELECT MODEL</div>
+              <div class="model-cards">
+                <div class="model-card active" onclick="selectModel('lstm',this)">
+                  <div class="model-name">🧠 LSTM Neural Network</div>
+                  <div class="model-acc">93.2%</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px;">Long Short-Term Memory — Captures complex temporal patterns. Best for 24–72h forecasts.</div>
+                </div>
+                <div class="model-card" onclick="selectModel('rf',this)">
+                  <div class="model-name">🌲 Random Forest</div>
+                  <div class="model-acc">88.7%</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px;">Ensemble of decision trees — Fast, interpretable, handles missing data well.</div>
+                </div>
+                <div class="model-card" onclick="selectModel('xgb',this)">
+                  <div class="model-name">⚡ XGBoost</div>
+                  <div class="model-acc">91.4%</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px;">Gradient boosted trees — Excellent performance on structured meteorological data.</div>
+                </div>
+                <div class="model-card" onclick="selectModel('ensemble',this)">
+                  <div class="model-name">🔗 Ensemble (All Models)</div>
+                  <div class="model-acc">95.1%</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px;">Weighted combination — Highest accuracy through model averaging and stacking.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card realism-box">
+          
+          
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="margin-bottom:14px;"><span>🎯</span> Model Performance</div>
+            <div class="metrics-grid" style="margin-bottom:16px;">
+              <div class="metric-card realism-card">
+                
+                
+                <div class="realism-card-inner" style="padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                  <div class="metric-val" id="metric-acc">93.2%</div>
+                  <div class="metric-label">Accuracy</div>
+                </div>
+              </div>
+              <div class="metric-card realism-card">
+                
+                
+                <div class="realism-card-inner" style="padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                  <div class="metric-val" id="metric-mae">4.8</div>
+                  <div class="metric-label">MAE (AQI)</div>
+                </div>
+              </div>
+              <div class="metric-card realism-card">
+                
+                
+                <div class="realism-card-inner" style="padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                  <div class="metric-val" id="metric-rmse">6.3</div>
+                  <div class="metric-label">RMSE</div>
+                </div>
+              </div>
+              <div class="metric-card realism-card">
+                
+                
+                <div class="realism-card-inner" style="padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                  <div class="metric-val" id="metric-r2">0.94</div>
+                  <div class="metric-label">R² Score</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">FEATURE IMPORTANCE</div>
+            <div id="featureImportance"></div>
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; font-size:11px; color:var(--text3);">
+              <div><span>⚡ Batch Size:</span> <strong style="color:var(--text2)">64</strong></div>
+              <div><span>🔄 Epochs:</span> <strong style="color:var(--text2)">150</strong></div>
+              <div><span>🟢 Status:</span> <strong style="color:#00e676">Optimal</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
+        <div class="card realism-box">
+          
+          
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="margin-bottom:14px;"><span>📈</span> Predicted vs Actual</div>
+            <div class="chart-wrap" style="height:240px;"><canvas id="predActualChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card realism-box">
+          
+          
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            
+            <div class="card-title" style="margin-bottom:14px;"><span>🔮</span> 72-Hour Prediction</div>
+            <div class="chart-wrap" style="height:240px;"><canvas id="predChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-aichat">
+      <div class="section-header">
+        <div>
+          <div class="section-title">AI Health Advisor</div>
+          <div class="section-sub">Local AI Advisor · Ask about air quality, health risks, and personalized advice · No API key needed</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+            <div>
+              <div style="font-family:var(--font-head);font-weight:700;font-size:15px;" id="chatBotName">AirLens Health Advisor</div>
+              <div style="font-size:11px;color:var(--accent2);">● Online · Local AI · No Key Required</div>
+            </div>
+          </div>
+          <div class="ai-chat-wrap" style="border:none;border-radius:0;height:420px;">
+            <div class="ai-chat-messages" id="chatMessages">
+              <div class="chat-msg bot" id="chatWelcomeMsg">
+                👋 Hello! I'm your <strong>Chennai Air Health Advisor</strong> — a local AI with access to today's live AQI data. No API key needed!<br><br>
+                <strong>Today's AQI:</strong> <span id="chatAQI">Loading…</span><br><br>
+                Try asking: <em>"Is it safe to go outside?"</em>, <em>"Should I wear a mask?"</em>, or <em>"Which area is cleanest right now?"</em>
+              </div>
+            </div>
+            <div class="chat-quick-btns">
+              <button class="chat-quick-btn" onclick="sendQuick('Is it safe to go for a run outside today?')">🏃 Safe to run?</button>
+              <button class="chat-quick-btn" onclick="sendQuick('Should my child go to school today given the AQI?')">👶 Child safety?</button>
+              <button class="chat-quick-btn" onclick="sendQuick('What mask should I wear today?')">😷 Best mask?</button>
+              <button class="chat-quick-btn" id="chatBestAreaBtn" onclick="sendQuick('Which area nearby has the best air quality right now?')">📍 Best area?</button>
+              <button class="chat-quick-btn" onclick="sendQuick('What foods help protect against air pollution?')">🥗 Healthy foods?</button>
+            </div>
+            <div class="ai-chat-input-row">
+              <input class="ai-chat-input" id="chatInput" type="text" placeholder="Ask about air quality, health risks, or precautions…" onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="ai-chat-send" id="chatSendBtn" onclick="sendChat()">Send ↗</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-title"><span>📊</span> Live Context for AI</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text2);">Current AQI</span><span id="ctx-aqi" style="font-weight:700;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text2);">PM2.5</span><span id="ctx-pm25" style="font-weight:700;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text2);">PM10</span><span id="ctx-pm10" style="font-weight:700;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text2);">NO₂</span><span id="ctx-no2" style="font-weight:700;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text2);">Temperature</span><span id="ctx-temp" style="font-weight:700;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;">
+                <span style="color:var(--text2);">Wind</span><span id="ctx-wind" style="font-weight:700;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>💡</span> Sample Questions</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text2);">
+              <div>• "Is it safe to walk to work today?"</div>
+              <div>• "I have asthma — what precautions should I take?"</div>
+              <div>• "Compare air quality today vs yesterday"</div>
+              <div>• "Should I buy an air purifier?"</div>
+              <div>• "What time of day is cleanest to go outside?"</div>
+              <div>• "How does PM2.5 affect the heart?"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-history">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Historical Analysis</div>
+          <div class="section-sub">Past 30 days pollution data and trend analysis</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Download CSV</button>
+      </div>
+
+      <div class="history-stats">
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#00e1ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+            <div class="h-title">MONTHLY AVG AQI</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-avg-val" style="color:#00e1ff;text-shadow:0 0 15px rgba(0,225,255,0.4)">77</div>
+              <div class="h-status" id="hist-avg-status" style="color:#ff9800">Moderate</div>
+              <div class="h-trend">vs last month <span id="hist-avg-trend" style="color:#00e5c8">↓ 13%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-avg" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#ff6b6b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+            <div class="h-title">PEAK AQI (THIS MONTH)</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-peak-val" style="color:#ff6b6b;text-shadow:0 0 15px rgba(255,107,107,0.4)">198</div>
+              <div class="h-status" id="hist-peak-status" style="color:#ff6b6b">Unhealthy</div>
+              <div class="h-trend">vs last month <span id="hist-peak-trend" style="color:#ff6b6b">↑ 8%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-peak" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#00e5c8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+            <div class="h-title">LOWEST AQI</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-low-val" style="color:#00e5c8;text-shadow:0 0 15px rgba(0,229,200,0.4)">58</div>
+              <div class="h-status" id="hist-low-status" style="color:#00e5c8">Good</div>
+              <div class="h-trend">vs last month <span id="hist-low-trend" style="color:#00e5c8">↓ 21%</span></div>
+            </div>
+            <div class="h-graph"><canvas id="spark-low" width="100" height="60"></canvas></div>
+          </div>
+        </div>
+
+        <div class="h-stat-card card">
+          <div class="h-card-top">
+            <div class="h-icon" style="color:#ffcc00"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            <div class="h-title">UNHEALTHY DAYS</div>
+          </div>
+          <div class="h-card-content">
+            <div class="h-data">
+              <div class="h-val" id="hist-unh-val" style="color:#ffcc00;text-shadow:0 0 15px rgba(255,204,0,0.4)">8</div>
+              <div class="h-status" style="color:#ffcc00">Days</div>
+              <div class="h-trend">vs last month <span id="hist-unh-trend" style="color:#ff6b6b">↑ 2</span></div>
+            </div>
+            <div class="h-graph h-gauge-wrap">
+              <canvas id="gauge-unhealthy" width="70" height="70"></canvas>
+              <div class="h-gauge-icon">⚠️</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="history-grid">
+        <div class="card f-card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 0;">
+            <span>📅 30-Day AQI History</span>
+            <select class="h-dropdown"><option>30 Days</option></select>
+          </div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="historyChart"></canvas></div>
+        </div>
+
+        <div class="card f-card h-dist-card">
+          <div class="card-title" style="padding:16px 24px 0;"><span>🧳</span> Monthly Distribution</div>
+          <div class="h-dist-layout">
+            <div class="chart-wrap" style="height:210px;width:210px;position:relative;flex-shrink:0;">
+              <canvas id="distChart"></canvas>
+              <div class="h-dist-center">
+                <div class="h-dist-lbl">Total Days</div>
+                <div class="h-dist-val">30</div>
+              </div>
+            </div>
+            <div class="h-dist-legend" id="h-dist-legend">
+              <!-- JS will populate -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card f-card">
+          <div class="card-title" style="padding:16px 24px 0;"><span>🔥</span> Pollutant Heatmap (30 days)</div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="heatmapChart"></canvas></div>
+        </div>
+
+        <div class="card f-card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 0;">
+            <span>☁️ Weather vs AQI Correlation</span>
+            <select class="h-dropdown"><option>Temperature vs AQI</option></select>
+          </div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="corrChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-health">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Health Advisory & Insights</div>
+          <div class="section-sub">Personalized health recommendations based on current air quality</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Download Health Report</button>
+      </div>
+
+      <div class="hl-hero-grid">
+        <div class="hl-hero card" id="healthHeroCard">
+          <div class="hl-hero-title"><span>📈</span> Current AQI</div>
+          <div class="hl-dial-wrap">
+            <div class="hl-dial-bg"></div>
+            <div class="hl-dial-progress" id="healthAqiDialProgress"></div>
+            <div class="hl-dial-center">
+              <div class="hl-dial-val" id="healthAqiDialVal">42</div>
+              <div class="hl-dial-status" id="healthAqiDialStatus">Good</div>
+            </div>
+          </div>
+          <div class="hl-hero-msg">
+            <div class="hl-msg-main" id="healthMsgMain">Air quality is satisfactory 😊</div>
+            <div class="hl-msg-sub" id="healthMsgSub">Enjoy your outdoor activities!</div>
+          </div>
+          <div class="hl-pills-wrap">
+            <div class="hl-pill"><div class="hl-p-name">PM2.5</div><div class="hl-p-val" id="healthPm25Val" style="color:#00e676">18</div><div class="hl-p-unit">µg/m³</div></div>
+            <div class="hl-pill"><div class="hl-p-name">PM10</div><div class="hl-p-val" id="healthPm10Val" style="color:#00e676">32</div><div class="hl-p-unit">µg/m³</div></div>
+            <div class="hl-pill"><div class="hl-p-name">O₃</div><div class="hl-p-val" id="healthO3Val" style="color:#00e676">26</div><div class="hl-p-unit">ppb</div></div>
+            <div class="hl-pill"><div class="hl-p-name">NO₂</div><div class="hl-p-val" id="healthNo2Val" style="color:#00e676">14</div><div class="hl-p-unit">ppb</div></div>
+            <div class="hl-pill"><div class="hl-p-name">CO</div><div class="hl-p-val" id="healthCoVal" style="color:#00e676">0.4</div><div class="hl-p-unit">ppm</div></div>
+          </div>
+          <div class="hl-hero-footer">Source: CPCB &nbsp;•&nbsp; Updated 10 min ago</div>
+        </div>
+
+        <div class="hl-recs card">
+          <div class="hl-wave"></div>
+          <div class="card-title" style="position:relative;z-index:2;"><span>✨</span> Today's Recommendations</div>
+          <div class="advisory-list" style="margin-top:20px;position:relative;z-index:2;">
+            <div class="advisory-item hl-adv-item">
+              <div class="advisory-icon hl-adv-icon">😷</div>
+              <div class="advisory-text hl-adv-text">
+                <h4>Wear N95/KN95 Mask Outdoors</h4>
+                <p>PM2.5 levels are well above WHO guideline of 15 µg/m³. Masks are essential.</p>
+              </div>
+              <div class="advisory-level sev-high">CRITICAL</div>
+            </div>
+            <div class="advisory-item hl-adv-item">
+              <div class="advisory-icon hl-adv-icon">🏃</div>
+              <div class="advisory-text hl-adv-text">
+                <h4>Reschedule Outdoor Sports</h4>
+                <p>Avoid jogging, cycling, or outdoor sports between 10 AM–4 PM when ozone peaks.</p>
+              </div>
+              <div class="advisory-level sev-med">HIGH</div>
+            </div>
+            <div class="advisory-item hl-adv-item">
+              <div class="advisory-icon hl-adv-icon">🏠</div>
+              <div class="advisory-text hl-adv-text">
+                <h4>Keep Indoor Air Clean</h4>
+                <p>Use HEPA air purifiers. Keep windows closed during peak traffic hours (8–10 AM, 6–8 PM).</p>
+              </div>
+              <div class="advisory-level sev-med">HIGH</div>
+            </div>
+            <div class="advisory-item hl-adv-item">
+              <div class="advisory-icon hl-adv-icon">🌿</div>
+              <div class="advisory-text hl-adv-text">
+                <h4>Hydrate & Eat Antioxidants</h4>
+                <p>Drink 3+ liters of water. Consume vitamin C and E-rich foods to counter oxidative stress.</p>
+              </div>
+              <div class="advisory-level sev-low">INFO</div>
+            </div>
+          </div>
+          <a href="#" class="hl-view-all">View All Recommendations →</a>
+        </div>
+      </div>
+
+      <div class="hl-bot-grid">
+        <div class="card f-card hl-chart-card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0;">
+            <span>📊 AQI Health Impact Chart</span>
+            <select class="h-dropdown"><option>Bar View</option></select>
+          </div>
+          <div class="chart-wrap" style="height:250px;padding:0 24px;"><canvas id="healthChart"></canvas></div>
+          <div class="hl-chart-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Higher AQI means greater risk to health. Take necessary precautions.
+          </div>
+        </div>
+
+        <div class="card f-card hl-guide-card">
+          <div class="card-title" style="padding:20px 24px 0;"><span>📖</span> AQI Level Guide</div>
+          <div class="hl-guide-list">
+            <div class="lvl-box" style="--c:#00e676">
+              <div class="lvl-content">
+                <div class="lvl-dot"></div>
+                <div class="lvl-text">
+                  <div class="lvl-title">Good (0–50)</div>
+                  <div class="lvl-sub">Air quality is satisfactory — normal activities</div>
+                </div>
+              </div>
+              <div class="lvl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5h4M5 22l4-8 5 4 6-12"></path></svg></div>
+            </div>
+
+            <div class="lvl-box" style="--c:#ffeb3b">
+              <div class="lvl-content">
+                <div class="lvl-dot"></div>
+                <div class="lvl-text">
+                  <div class="lvl-title">Moderate (51–100)</div>
+                  <div class="lvl-sub">Acceptable; sensitive individuals should reduce outdoor exertion</div>
+                </div>
+              </div>
+              <div class="lvl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5h4M5 22l4-8 5 4 6-12"></path></svg></div>
+            </div>
+
+            <div class="lvl-box" style="--c:#ff9800">
+              <div class="lvl-content">
+                <div class="lvl-dot"></div>
+                <div class="lvl-text">
+                  <div class="lvl-title">Unhealthy – Sensitive (101–150)</div>
+                  <div class="lvl-sub">General public unlikely affected; sensitive groups at risk</div>
+                </div>
+              </div>
+              <div class="lvl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5h4M5 22l4-8 5 4 6-12"></path></svg></div>
+            </div>
+
+            <div class="lvl-box" style="--c:#f44336">
+              <div class="lvl-content">
+                <div class="lvl-dot"></div>
+                <div class="lvl-text">
+                  <div class="lvl-title">Unhealthy (151–200)</div>
+                  <div class="lvl-sub">Everyone may experience adverse health effects</div>
+                </div>
+              </div>
+              <div class="lvl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5h4M5 22l4-8 5 4 6-12"></path></svg></div>
+            </div>
+
+            <div class="lvl-box" style="--c:#9c27b0">
+              <div class="lvl-content">
+                <div class="lvl-dot"></div>
+                <div class="lvl-text">
+                  <div class="lvl-title">Very Unhealthy (201–300)</div>
+                  <div class="lvl-sub">Health alert: serious health risks for all populations</div>
+                </div>
+              </div>
+              <div class="lvl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5h4M5 22l4-8 5 4 6-12"></path></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-exposure">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Personal Exposure Tracker</div>
+          <div class="section-sub">Calculate your daily PM2.5 exposure dose based on your schedule</div>
+        </div>
+      </div>
+      <div class="exposure-grid">
+        <div class="card">
+          <div class="card-title"><span>📝</span> Your Daily Schedule</div>
+          <div class="exp-form">
+            <div class="exp-row">
+              <span class="exp-label">Neighborhood</span>
+              <select class="exp-input" id="exp-area">
+                <option value="100">Loading areas…</option>
+              </select>
+            </div>
+            <div class="exp-row">
+              <span class="exp-label">Outdoor commute</span>
+              <input class="exp-input" id="exp-commute" type="number" min="0" max="120" value="30" placeholder="minutes/day">
+              <span style="font-size:12px;color:var(--text2);margin-left:6px;">min</span>
+            </div>
+            <div class="exp-row">
+              <span class="exp-label">Outdoor exercise</span>
+              <input class="exp-input" id="exp-exercise" type="number" min="0" max="180" value="0" placeholder="minutes/day">
+              <span style="font-size:12px;color:var(--text2);margin-left:6px;">min</span>
+            </div>
+            <div class="exp-row">
+              <span class="exp-label">Indoor (home)</span>
+              <input class="exp-input" id="exp-home" type="number" min="0" max="24" value="10" placeholder="hours/day">
+              <span style="font-size:12px;color:var(--text2);margin-left:6px;">hrs</span>
+            </div>
+            <div class="exp-row">
+              <span class="exp-label">Has air purifier?</span>
+              <select class="exp-input" id="exp-purifier">
+                <option value="1">No purifier</option>
+                <option value="0.4">HEPA purifier (good)</option>
+                <option value="0.7">Basic fan filter</option>
+              </select>
+            </div>
+            <div class="exp-row">
+              <span class="exp-label">Breathing rate</span>
+              <select class="exp-input" id="exp-activity">
+                <option value="0.45">Resting/Office</option>
+                <option value="1.0" selected>Walking/Light</option>
+                <option value="2.0">Moderate exercise</option>
+                <option value="3.5">Vigorous exercise</option>
+              </select>
+            </div>
+            <button class="btn-primary" onclick="calcExposure()" style="margin-top:8px;">Calculate My Exposure</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>📍</span> Your Exposure Results</div>
+          <div class="exposure-result" id="exposureResult" style="display:none;">
+            <div class="exp-dose-label">Daily PM2.5 Exposure Dose</div>
+            <div class="exp-dose" id="expDose">—</div>
+            <div class="exp-dose-label">µg/m³ · hours</div>
+            <div style="margin-top:16px;padding:12px;border-radius:8px;" id="expStatus"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Breakdown</div>
+              <div id="expBreakdown" style="display:flex;flex-direction:column;gap:6px;font-size:12px;"></div>
+            </div>
+            <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text2);" id="expAdvice"></div>
+          </div>
+          <div id="exposurePlaceholder" style="text-align:center;padding:40px;color:var(--text3);">
+            <div style="font-size:40px;margin-bottom:12px;">📍</div>
+            <div>Fill in your schedule and click Calculate</div>
+          </div>
+          <div style="margin-top:20px;">
+            <div class="card-title" style="margin-bottom:12px;"><span>📊</span> Exposure Comparison</div>
+            <div class="chart-wrap" style="height:180px;"><canvas id="exposureChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-alerts">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Alerts System</div>
+          <div class="section-sub">Real-time notifications and threshold-based warnings</div>
+        </div>
+        <button class="topbar-btn" onclick="document.getElementById('alertSettingsModal').classList.add('open')">⚙ Alert
+          Settings</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:20px;">
+        <div class="card">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-title">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><span>🔔</span> Threshold Settings</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                <span style="color:var(--text2);">PM2.5 Alert Level</span>
+                <span id="pm25ThreshLabel" style="color:var(--accent);font-weight:700;">60 µg/m³</span>
+              </div>
+              <input type="range" min="10" max="150" value="60" style="width:100%;"
+                oninput="document.getElementById('pm25ThreshLabel').textContent=this.value+' µg/m³';saveThresholds();">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                <span style="color:var(--text2);">AQI Alert Level</span>
+                <span id="aqiThreshLabel" style="color:var(--accent);font-weight:700;">150 AQI</span>
+              </div>
+              <input type="range" min="50" max="400" value="150" style="width:100%;"
+                oninput="document.getElementById('aqiThreshLabel').textContent=this.value+' AQI';saveThresholds();">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                <span style="color:var(--text2);">NO₂ Alert Level</span>
+                <span id="no2ThreshLabel" style="color:var(--accent);font-weight:700;">40 µg/m³</span>
+              </div>
+              <input type="range" min="10" max="200" value="40" style="width:100%;"
+                oninput="document.getElementById('no2ThreshLabel').textContent=this.value+' µg/m³';saveThresholds();">
+            </div>
+            <button class="btn-primary" style="margin-top:8px;"
+              onclick="saveThresholds();showToast('✅','Thresholds Saved','Alert levels updated')">Save
+              Thresholds</button>
+          </div>
+        
+        <div class="card">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+          <div class="card-title">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><span>⚡</span> Active Alerts (Today)</div>
+          <div class="alerts-list" id="alertsList"></div>
+        
+      
+      <div class="card">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+        <div class="card-title">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><span>📋</span> Alert History</div>
+        <div class="alerts-list" id="alertHistory"></div>
+      
+    
+
+    <!-- ===== DATA SOURCES PAGE ===== -->
+</div>
+    <div class="page" id="page-data">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Data Sources & Integration</div>
+          <div class="section-sub">All data inputs powering the forecasting system</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:24px;">
+        <div class="card" style="border-color:rgba(0,229,200,0.3);">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow" style="background:linear-gradient(90deg,transparent,var(--accent2),transparent);">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+          <div style="font-size:36px;margin-bottom:12px;">🛰</div>
+          <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:8px;">Sentinel-5P
+            TROPOMI</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px;">ESA satellite providing
+            NO₂, O₃, SO₂, CO column measurements at 3.5×5.5 km resolution daily.</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><span style="color:#00e676;">●
+              ACTIVE</span><span style="color:var(--text3);">Updated daily</span></div>
+        
+        <div class="card" style="border-color:rgba(56,180,255,0.3);">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+          <div style="font-size:36px;margin-bottom:12px;">🌡</div>
+          <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:8px;">IMD /
+            OpenWeatherMap</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px;">Real-time temperature,
+            humidity, wind speed, pressure, visibility every 3 hours for your selected city.</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><span style="color:#00e676;">●
+              ACTIVE</span><span style="color:var(--text3);">Live API</span></div>
+        
+        <div class="card" style="border-color:rgba(255,107,107,0.3);">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow" style="background:linear-gradient(90deg,transparent,var(--accent3),transparent);">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+          <div style="font-size:36px;margin-bottom:12px;">📡</div>
+          <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:8px;">WAQI / CPCB
+            Stations</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px;">World Air Quality Index
+            network — live PM2.5, PM10, NO₂, CO, SO₂, O₃ from nearby monitoring stations.</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;"><span style="color:#00e676;">●
+              ACTIVE</span><span style="color:var(--text3);">Updated hourly</span></div>
+        
+      
+      <div class="card">
+        <div class="aqi-layer-noise"></div><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><div class="card-glow">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div></div>
+        <div class="card-title">
+        <div class="aqi-layer-noise"><div class="aqi-layer-smudge"></div><div class="aqi-layer-glow-purple"></div><div class="aqi-layer-glow-center"></div><div class="aqi-layer-border-glow"></div><div class="aqi-layer-glass"></div></div><span>📡</span> API Status</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px;">
+          <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid rgba(0,230,118,0.2);">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">WAQI API</div>
+            <div style="font-size:13px;font-weight:700;color:#00e676;margin:4px 0;">● Online</div>
+            <div style="font-size:11px;color:var(--text2);">Real AQI data</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid rgba(0,230,118,0.2);">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">OpenWeather API
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#00e676;margin:4px 0;">● Online</div>
+            <div style="font-size:11px;color:var(--text2);">Live weather</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid rgba(0,230,118,0.2);">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Local AI Engine
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#00e676;margin:4px 0;">● Built-in</div>
+            <div style="font-size:11px;color:var(--text2);">No key needed</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid rgba(255,235,59,0.2);">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">ML Model</div>
+            <div style="font-size:13px;font-weight:700;color:#ffeb3b;margin:4px 0;">● Simulated</div>
+            <div style="font-size:11px;color:var(--text2);">Demo mode</div>
+          </div>
+        </div>
+      
+    
+
+</div>
+  </main>
+
+  <!-- LOGIN MODAL -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal" style="position:relative;">
+      <button class="modal-close" onclick="document.getElementById('loginModal').classList.remove('open')">×</button>
+      <h2>🔐 Sign In</h2>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">Access personalized alerts and pollution reports
+      </p>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="loginEmail" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="loginPass" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);">
+          <input type="checkbox" id="alertsCheck" style="accent-color:var(--accent);">
+          Enable personalized AQI alerts via email
+        </label>
+      </div>
+      <button class="btn-primary" onclick="loginUser()">Sign In</button>
+      <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--text2);">
+        New user? <a href="#" style="color:var(--accent);">Create account</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERT SETTINGS MODAL -->
+  <div class="modal-overlay" id="alertSettingsModal">
+    <div class="modal" style="position:relative;">
+      <button class="modal-close"
+        onclick="document.getElementById('alertSettingsModal').classList.remove('open')">×</button>
+      <h2>⚙️ Alert Settings</h2>
+      <div class="form-group">
+        <label class="form-label">Alert Method</label>
+        <select class="form-input">
+          <option>Browser Notification</option>
+          <option>Email</option>
+          <option>Both</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">AQI Alert Threshold</label>
+        <input class="form-input" type="number" value="150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Alert Frequency</label>
+        <select class="form-input">
+          <option>Every hour</option>
+          <option>Every 4 hours</option>
+          <option>Daily digest</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary"
+          onclick="document.getElementById('alertSettingsModal').classList.remove('open');showToast('✅','Settings Saved','Alert preferences updated')">Save
+          Settings</button>
+        <button class="btn-secondary"
+          onclick="document.getElementById('alertSettingsModal').classList.remove('open')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-icon">✅</div>
+    <div class="toast-text">
+      <h4 id="toast-title">Done</h4>
+      <p id="toast-msg">Action completed</p>
+    </div>
+  </div>
+
+  <script src="dashboard-redesign.js?v=1"></script>
+</body>
+
+</html>

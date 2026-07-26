@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AirLens · Pollutant Detail</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="air-pollution.css" />
+  <link rel="stylesheet" href="dashboard-redesign.css" />
+  <link rel="stylesheet" href="pollutant.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body class="pd-body">
+  <div class="pd-shell">
+    <!-- Top bar -->
+    <div class="pd-topbar">
+      <div class="pd-topbar-left">
+        <button class="pd-btn pd-btn-ghost" onclick="history.length>1?history.back():location.href='air_pollution.html'">← Back</button>
+        <div class="pd-crumbs">Dashboard · <b id="pdCrumb">Pollutant</b></div>
+      </div>
+      <a class="pd-btn" href="air_pollution.html">Full Dashboard</a>
+    </div>
+
+    <!-- 1. HERO -->
+    <section class="pd-hero">
+      <div class="pd-hero-grid">
+        <div>
+          <div class="pd-hero-mono" id="pdSymbolMono">POLLUTANT</div>
+          <h1 id="pdName">—</h1>
+          <p class="pd-hero-sub" id="pdTag">—</p>
+          <div class="pd-hero-metrics">
+            <div class="pd-value">
+              <span class="pd-value-num" id="pdValue">—</span>
+              <span class="pd-value-unit" id="pdUnit">µg/m³</span>
+            </div>
+            <div class="pd-status-pill" id="pdStatus"><span class="dot"></span><span id="pdStatusTxt">—</span></div>
+          </div>
+          <div class="pd-hero-meta">
+            <span>City: <b id="pdCity">—</b></span>
+            <span>AQI: <b id="pdAQI">—</b></span>
+            <span>Updated: <b id="pdUpdated">just now</b></span>
+          </div>
+        </div>
+        <div class="pd-hero-orb" id="pdOrb" data-symbol="—"></div>
+      </div>
+    </section>
+
+    <!-- 2. SUMMARY (stat grid) -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Summary</div><div class="pd-section-hint">Key metrics</div></div>
+      <div class="pd-grid pd-grid-4" id="pdSummary"></div>
+    </section>
+
+    <!-- 3. HEALTH IMPACT -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Health Impact</div><div class="pd-section-hint">Right now, in your city</div></div>
+      <div class="pd-glass">
+        <p class="pd-impact-lede" id="pdImpactLede"></p>
+        <div class="pd-reco-list" id="pdImpactRecos"></div>
+      </div>
+    </section>
+
+    <!-- 4. EDUCATION -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">What is this?</div><div class="pd-section-hint">Basics · size · behaviour</div></div>
+      <div class="pd-glass pd-edu">
+        <div class="pd-scale-plot" id="pdScalePlot"></div>
+        <div class="pd-edu-copy" id="pdEduCopy"></div>
+      </div>
+    </section>
+
+    <!-- 5. SOURCES -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Where it comes from</div><div class="pd-section-hint">Emission sources</div></div>
+      <div class="pd-grid pd-grid-3" id="pdSources"></div>
+    </section>
+
+    <!-- 6. HEALTH EFFECTS BY GROUP -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Effects by group</div><div class="pd-section-hint">Who is most at risk</div></div>
+      <div class="pd-grid pd-grid-3" id="pdGroups"></div>
+    </section>
+
+    <!-- 7. TREND CHART -->
+    <section class="pd-section">
+      <div class="pd-section-head">
+        <div class="pd-section-title">Trend</div>
+        <div class="pd-chart-tabs" id="pdChartTabs">
+          <button class="pd-tab on" data-range="24h">24H</button>
+          <button class="pd-tab" data-range="7d">7D</button>
+          <button class="pd-tab" data-range="30d">30D</button>
+        </div>
+      </div>
+      <div class="pd-glass"><div class="pd-chart-wrap"><canvas id="pdChart"></canvas></div></div>
+    </section>
+
+    <!-- 8. TIMELINE -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">A day in the life</div><div class="pd-section-hint">How levels shift by hour</div></div>
+      <div class="pd-glass"><div class="pd-timeline" id="pdTimeline"></div></div>
+    </section>
+
+    <!-- 9. WHO COMPARISON -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">WHO comparison</div><div class="pd-section-hint">Local vs global guidelines</div></div>
+      <div class="pd-glass"><div id="pdWho"></div></div>
+    </section>
+
+    <!-- 10. SAFETY RECOMMENDATIONS -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Safety Recommendations</div><div class="pd-section-hint">What you can do</div></div>
+      <div class="pd-grid pd-grid-2" id="pdSafety"></div>
+    </section>
+
+    <!-- 11. SCIENTIFIC FACTS -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Scientific facts</div><div class="pd-section-hint">Data · research · numbers</div></div>
+      <div class="pd-grid pd-grid-3" id="pdFacts"></div>
+    </section>
+
+    <!-- 12. AREA MAP -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Area map</div><div class="pd-section-hint" id="pdMapCity">—</div></div>
+      <div class="pd-glass" style="padding:8px"><div id="pdMap"></div></div>
+    </section>
+
+    <!-- 13. AI INSIGHT -->
+    <section class="pd-section">
+      <div class="pd-ai-insight" id="pdAI">
+        <div class="pd-ai-mono">◆ AirLens AI · Insight</div>
+        <div class="pd-ai-text" id="pdAIText">Generating insight…</div>
+      </div>
+    </section>
+
+    <!-- 14. RELATED POLLUTANTS -->
+    <section class="pd-section">
+      <div class="pd-section-head"><div class="pd-section-title">Related pollutants</div><div class="pd-section-hint">Jump to another</div></div>
+      <div class="pd-related" id="pdRelated"></div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="pollutant.js"></script>
+</body>
+</html>

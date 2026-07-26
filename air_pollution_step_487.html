@@ -1,0 +1,278 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+html_path = r'c:\Users\ADMIN\Downloads\AirLens_Phase1_4\AirLens_Phase1_4\frontend\air_pollution.html'
+js_path = r'c:\Users\ADMIN\Downloads\AirLens_Phase1_4\AirLens_Phase1_4\frontend\air-pollution.js'
+
+with open(html_path, 'r', encoding='utf-8', errors='replace') as f:
+    content = f.read()
+
+start_marker = "<!-- ===== FORECAST PAGE ====="
+end_marker = "<!-- ===== RANKINGS PAGE ====="
+
+start_idx = content.find(start_marker)
+end_idx = content.find(end_marker)
+
+print(f"Forecast Section Indices: {start_idx}, {end_idx}")
+
+realism_forecast_html = """<!-- ===== FORECAST PAGE (REALISM SHINY BORDERS DESIGN) ===== -->
+    <div class="page" id="page-forecast">
+      <div class="section-header">
+        <div>
+          <div class="section-title">7-Day Pollution Forecast</div>
+          <div class="section-sub">AI-powered predictions using ensemble LSTM + XGBoost model</div>
+        </div>
+        <button class="topbar-btn" onclick="downloadReport()">⬇ Export Data</button>
+      </div>
+
+      <!-- 7 Daily Forecast Cards Stack -->
+      <div class="days-forecast" id="daysForecast" style="margin-top:16px;"></div>
+
+      <!-- Main AQI Forecast Chart (Realism Shiny Borders Box) -->
+      <div class="forecast-full" style="margin-top:18px;">
+        <div class="card realism-box" style="display:flex; flex-direction:column; width:100%;">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+
+          <div class="realism-inner" style="padding:20px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="card-title" style="display:flex; align-items:center; gap:8px; margin-bottom:14px; font-weight:700; font-size:15px;">
+              <span>📈</span> AQI Forecast Timeline
+              <div style="margin-left:auto; display:flex; gap:8px;">
+                <button class="topbar-btn" onclick="updateForecastChart('aqi')" id="btn-aqi" style="padding:5px 12px; font-size:12px;">AQI</button>
+                <button class="topbar-btn" onclick="updateForecastChart('pm25')" id="btn-pm25" style="padding:5px 12px; font-size:12px;">PM2.5</button>
+                <button class="topbar-btn" onclick="updateForecastChart('pm10')" id="btn-pm10" style="padding:5px 12px; font-size:12px;">PM10</button>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:260px; width:100%;">
+              <canvas id="forecastMainChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 Individual Pollutant Forecast Cards (Realism Shiny Borders Cards) -->
+      <div class="forecast-grid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:18px; margin-top:18px;">
+        
+        <!-- PM2.5 -->
+        <div class="card f-card realism-box" id="fc-pm25">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(56,180,255); background:rgba(56,180,255,0.15); padding:8px; border-radius:10px;">🔬</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">PM2.5 Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Fine Particulate Matter</div></div>
+              </div>
+              <div class="f-pill" id="fp-pm25"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-pm25">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-pm25"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-pm25">--</div><div class="f-peak-val" id="fpv-pm25">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="pm25Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-pm25">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-pm25">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PM10 -->
+        <div class="card f-card realism-box" id="fc-pm10">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(0,229,200); background:rgba(0,229,200,0.15); padding:8px; border-radius:10px;">💨</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">PM10 Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Coarse Particulate Matter</div></div>
+              </div>
+              <div class="f-pill" id="fp-pm10"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-pm10">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-pm10"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-pm10">--</div><div class="f-peak-val" id="fpv-pm10">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="pm10Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-pm10">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-pm10">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NO2 -->
+        <div class="card f-card realism-box" id="fc-no2">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(255,107,107); background:rgba(255,107,107,0.15); padding:8px; border-radius:10px;">🏭</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">NO₂ Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Nitrogen Dioxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-no2"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-no2">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-no2"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-no2">--</div><div class="f-peak-val" id="fpv-no2">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="no2Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-no2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-no2">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- O3 -->
+        <div class="card f-card realism-box" id="fc-o3">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(255,235,59); background:rgba(255,235,59,0.15); padding:8px; border-radius:10px;">☁️</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">O₃ Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Ozone</div></div>
+              </div>
+              <div class="f-pill" id="fp-o3"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-o3">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-o3"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-o3">--</div><div class="f-peak-val" id="fpv-o3">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="o3Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-o3">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-o3">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SO2 -->
+        <div class="card f-card realism-box" id="fc-so2">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(255,152,0); background:rgba(255,152,0,0.15); padding:8px; border-radius:10px;">🌋</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">SO₂ Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Sulfur Dioxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-so2"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-so2">--</span><span class="f-unit"> µg/m³</span></div></div>
+              <div class="f-trend" id="ft-so2"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-so2">--</div><div class="f-peak-val" id="fpv-so2">-- µg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="so2Chart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-so2">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-so2">--</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CO -->
+        <div class="card f-card realism-box" id="fc-co">
+          <div class="realism-topglow"></div>
+          <div class="realism-blob"></div>
+          <div class="realism-inner" style="padding:18px; width:100%;">
+            <div class="realism-inner-glow"></div>
+            <div class="f-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="f-title-left" style="display:flex; align-items:center; gap:10px;">
+                <div class="f-icon-wrap" style="color:rgb(156,39,176); background:rgba(156,39,176,0.15); padding:8px; border-radius:10px;">🔥</div>
+                <div class="f-titles"><div class="f-main-title" style="font-weight:700; color:#fff;">CO Forecast</div><div class="f-sub-title" style="font-size:12px; color:var(--text3);">Carbon Monoxide</div></div>
+              </div>
+              <div class="f-pill" id="fp-co"><span class="f-dot"></span><span class="f-status">--</span></div>
+            </div>
+            <div class="f-stats">
+              <div class="f-current"><div class="f-val-lbl">Current</div><div><span class="f-val" id="fv-co">--</span><span class="f-unit"> mg/m³</span></div></div>
+              <div class="f-trend" id="ft-co"><div class="f-trend-val"><span class="f-arrow">↑</span> 0%</div><div class="f-trend-sub">vs last 7 days</div></div>
+              <div class="f-peak"><div class="f-peak-title">Next Peak</div><div class="f-peak-day" id="fpd-co">--</div><div class="f-peak-val" id="fpv-co">-- mg/m³</div></div>
+            </div>
+            <div class="chart-wrap" style="height:120px; margin: 10px 0;"><canvas id="coChart"></canvas></div>
+            <div class="f-footer">
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↗</span>Highest</div><div class="f-mini-val" id="fh-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">↘</span>Lowest</div><div class="f-mini-val" id="fl-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">∿</span>Average</div><div class="f-mini-val" id="fa-co">--</div></div>
+              <div class="f-mini-box"><div class="f-mini-lbl"><span class="f-mini-ico">📅</span>Next Peak</div><div class="f-mini-val f-mini-highlight" id="fnp-co">--</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="f-accuracy-bar realism-box" style="margin-top:18px; border-radius:14px;">
+        <div class="realism-topglow"></div>
+        <div class="realism-blob"></div>
+        <div class="realism-inner" style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; width:100%;">
+          <div class="realism-inner-glow"></div>
+          <div class="f-acc-left" style="font-size:13px; color:var(--text2);">✨ Forecasts are generated using AI models trained on satellite data, weather forecasts and ground station measurements.</div>
+          <div class="f-acc-right" style="display:flex; align-items:center; gap:10px;">
+            <span style="color:#8ba2be; font-size:12px;">Prediction Accuracy</span>
+            <div class="f-acc-badge" style="background:#00e676; color:#0c1220; font-weight:700; padding:2px 8px; border-radius:6px; font-size:12px;">95%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>\n\n    """
+
+if start_idx != -1 and end_idx != -1:
+    new_content = content[:start_idx] + realism_forecast_html + content[end_idx:]
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print("SUCCESSFULLY APPLIED REALISM SHINY BORDERS TO FORECAST SECTION HTML!")
+
+# 2. Update air-pollution.js buildDayCards function
+with open(js_path, 'r', encoding='utf-8', errors='replace') as f:
+    js_content = f.read()
+
+old_day_card = """return `<div class="day-card${i === 0 ? ' active' : ''}" onclick="highlightDay(${i},this)">
+      <div class="day-name">${i === 0 ? 'TODAY' : days[d.getDay()].toUpperCase()}</div>
+      <div class="day-date" style="font-size:10px;color:var(--text3);">${d.getDate()} ${months[d.getMonth()]}</div>
+      <div class="day-aqi" style="color:${col}">${aqi}</div>
+      <div class="day-status" style="color:${col}">${aqiLabel(aqi).split('–')[0]}</div>
+      <div class="day-trend">${trend}</div>
+    </div>`;"""
+
+new_day_card = """return `<div class="day-card realism-card${i === 0 ? ' active' : ''}" onclick="highlightDay(${i},this)" style="cursor:pointer;">
+      <div class="realism-card-topglow"></div>
+      <div class="realism-card-blob"></div>
+      <div class="realism-card-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 10px; height:100%;">
+        <div class="realism-card-inner-glow"></div>
+        <div class="day-name" style="font-weight:700; font-size:12px; margin-bottom:2px;">${i === 0 ? 'TODAY' : days[d.getDay()].toUpperCase()}</div>
+        <div class="day-date" style="font-size:10px; color:var(--text3); margin-bottom:6px;">${d.getDate()} ${months[d.getMonth()]}</div>
+        <div class="day-aqi" style="font-family:var(--font-head); font-size:22px; font-weight:700; color:${col}">${aqi}</div>
+        <div class="day-status" style="font-size:11px; font-weight:600; color:${col}">${aqiLabel(aqi).split('–')[0]}</div>
+        <div class="day-trend" style="font-size:12px; margin-top:4px;">${trend}</div>
+      </div>
+    </div>`;"""
+
+if old_day_card in js_content:
+    js_content = js_content.replace(old_day_card, new_day_card)
+    with open(js_path, 'w', encoding='utf-8') as f:
+        f.write(js_content)
+    print("UPDATED buildDayCards in air-pollution.js with Realism Cards!")
+
